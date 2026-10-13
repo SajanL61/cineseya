@@ -56,6 +56,8 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
       try {
         const response = await fetch(`/api/search/suggest?q=${encodeURIComponent(query)}`, { signal: controller.signal });
         if (response.ok) { setItems((await response.json()).items); setActiveIndex(-1); }
+      } catch (error) {
+        if (!controller.signal.aborted && !(error instanceof DOMException && error.name === 'AbortError')) setItems([]);
       } finally { if (!controller.signal.aborted) setLoading(false); }
     }, 280);
     return () => { clearTimeout(timer); controller.abort(); };
