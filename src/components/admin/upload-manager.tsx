@@ -3,9 +3,10 @@
 import { Ban, CheckCircle2, CloudUpload, Copy, ExternalLink, LoaderCircle, RotateCcw } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { CompletedUploadAsset } from '@/lib/client/direct-upload';
+import { readCsrfToken } from '@/lib/client/browser-brand';
 import { uploadApiFetch as fetch } from '@/lib/client/upload-json';
 
-const csrf=()=>decodeURIComponent(document.cookie.split('; ').find((item)=>item.startsWith('cinerusubs_csrf='))?.split('=').slice(1).join('=')||'');
+const csrf=readCsrfToken;
 const mime=(file:File)=>file.type||({mkv:'video/x-matroska',m3u8:'application/vnd.apple.mpegurl'}[file.name.split('.').pop()?.toLocaleLowerCase()||'']||'application/octet-stream');
 function put(url:string,body:Blob,headers:Record<string,string>,signal:AbortSignal,onProgress:(loaded:number)=>void){return new Promise<string>((resolve,reject)=>{const request=new XMLHttpRequest();request.open('PUT',url);for(const[key,value]of Object.entries(headers))request.setRequestHeader(key,value);request.upload.onprogress=event=>onProgress(event.loaded);request.onerror=()=>reject(new Error('R2 rejected the upload. Check bucket CORS and network access.'));request.onload=()=>request.status>=200&&request.status<300?resolve(request.getResponseHeader('ETag')||''):reject(new Error(`R2 rejected the upload (${request.status}).`));const abort=()=>{request.abort();reject(new DOMException('Upload cancelled.','AbortError'));};signal.addEventListener('abort',abort,{once:true});request.onloadend=()=>signal.removeEventListener('abort',abort);request.send(body);});}
 

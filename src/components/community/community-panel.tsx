@@ -3,11 +3,12 @@
 import { Flag, Heart, LoaderCircle, MessageSquare, Pencil, Reply, Send, Star, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { readCsrfToken } from '@/lib/client/browser-brand';
 
 type Comment={id:string;parentId?:string;body:string;author:string;createdAt:string;editedAt?:string;likeCount:number;owned:boolean;liked:boolean};
 type Data={comments:Comment[];averageRating:number|null;ratingCount:number;userRating:number|null};
 const empty:Data={comments:[],averageRating:null,ratingCount:0,userRating:null};
-const csrf=()=>decodeURIComponent(document.cookie.split('; ').find((entry)=>entry.startsWith('cinerusubs_csrf='))?.split('=').slice(1).join('=')||'');
+const csrf=readCsrfToken;
 
 export function CommunityPanel({type,id,authenticated}:{type:'movie'|'series'|'subtitle';id:string;authenticated:boolean}){
   const[data,setData]=useState(empty);const[loading,setLoading]=useState(true);const[pending,setPending]=useState(false);const[message,setMessage]=useState('');const[replyTo,setReplyTo]=useState<string|null>(null);const[editing,setEditing]=useState<string|null>(null);

@@ -13,18 +13,28 @@ const envSchema = z.object({
   MONGODB_DB: z.literal('cinerusubs').default('cinerusubs'),
   SESSION_SECRET: z.string().min(32).default('development-only-session-secret-change-now'),
   DOWNLOAD_SIGNING_SECRET: z.string().min(32).default('development-only-download-secret-change'),
-  CINERUSUBS_DEMO_MODE: z.enum(['true', 'false']).default('false'),
+  CINESEYA_DEMO_MODE: z.enum(['true', 'false']).default('false'),
+  CINERUSUBS_DEMO_MODE: z.enum(['true', 'false']).optional(),
   R2_ACCOUNT_ID: z.string().optional(),
   R2_ACCESS_KEY_ID: z.string().optional(),
   R2_SECRET_ACCESS_KEY: z.string().optional(),
   R2_ENDPOINT: z.url().optional(),
-  R2_MEDIA_BUCKET: z.string().default('cinerusubs-media'),
-  R2_ASSETS_BUCKET: z.string().default('cinerusubs-assets'),
+  R2_MEDIA_BUCKET: z.string().default('cineseya-media'),
+  R2_ASSETS_BUCKET: z.string().default('cineseya-assets'),
   PUBLIC_ASSET_DOMAIN: optionalUrl,
   DOWNLOAD_DOMAIN: optionalUrl,
   DOWNLOAD_WORKER_ENABLED: z.enum(['true', 'false']).default('false'),
+  TRANSCODE_WORKER_ENABLED: z.enum(['true', 'false']).default('false'),
+  TRANSCODE_CONCURRENCY: z.coerce.number().int().min(1).max(4).default(1),
+  TRANSCODE_TEMP_DIR: z.string().default('/tmp/cineseya-transcode'),
+  TRANSCODE_PROFILE_VERSION: z.string().trim().min(1).max(40).default('1'),
+  TRANSCODE_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(5).default(2),
+  TRANSCODE_SEGMENT_SECONDS: z.coerce.number().int().min(4).max(10).default(6),
+  TRANSCODE_POLL_INTERVAL_MS: z.coerce.number().int().min(1_000).max(60_000).default(5_000),
+  STREAM_SESSION_TTL_SECONDS: z.coerce.number().int().min(900).max(43_200).default(14_400),
   TMDB_API_TOKEN: z.string().optional(),
   TURNSTILE_SECRET_KEY: z.string().optional(),
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -33,7 +43,7 @@ if (!parsed.success) throw new Error(`Invalid environment configuration: ${parse
 export const env = parsed.data;
 export const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
 export const publicAssetOrigin = env.PUBLIC_ASSET_DOMAIN ? new URL(env.PUBLIC_ASSET_DOMAIN).origin : undefined;
-export const useDemoData = env.CINERUSUBS_DEMO_MODE === 'true' || !env.MONGODB_URI;
+export const useDemoData = env.CINESEYA_DEMO_MODE === 'true' || env.CINERUSUBS_DEMO_MODE === 'true' || !env.MONGODB_URI;
 
 export function assertProductionEnvironment() {
   if (env.NODE_ENV !== 'production') return;

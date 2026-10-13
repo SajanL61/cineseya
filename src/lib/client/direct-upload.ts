@@ -1,6 +1,7 @@
 'use client';
 
 import { uploadApiFetch as fetch } from './upload-json';
+import { readCsrfToken } from './browser-brand';
 
 export type CompletedUploadAsset = {
   id: string;
@@ -15,7 +16,7 @@ export type CompletedUploadAsset = {
 
 type UploadTicket = { assetId: string; uploadUrl: string; headers: Record<string, string> };
 
-const csrf = () => decodeURIComponent(document.cookie.split('; ').find((item) => item.startsWith('cinerusubs_csrf='))?.split('=').slice(1).join('=') || '');
+const csrf = readCsrfToken;
 export const uploadMimeType = (file: File) => file.type || ({ mkv: 'video/x-matroska', m3u8: 'application/vnd.apple.mpegurl' }[file.name.split('.').pop()?.toLocaleLowerCase() || ''] || 'application/octet-stream');
 
 function put(url: string, file: File, headers: Record<string, string>, signal: AbortSignal, onProgress: (loaded: number) => void) {

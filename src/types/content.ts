@@ -14,6 +14,8 @@ export type MovieRecord = {
   title: string;
   originalTitle?: string;
   sinhalaTitle?: string;
+  alternativeTitles?: string[];
+  searchAliases?: string[];
   slug: string;
   overview: string;
   year: number;
@@ -34,6 +36,7 @@ export type MovieRecord = {
   tmdbRating?: number;
   cast: PersonCredit[];
   crew: PersonCredit[];
+  director?: string;
   rightsStatus: RightsStatus;
   featured: boolean;
   trending: boolean;
@@ -72,6 +75,8 @@ export type SeriesRecord = {
   title: string;
   originalTitle?: string;
   sinhalaTitle?: string;
+  alternativeTitles?: string[];
+  searchAliases?: string[];
   slug: string;
   overview: string;
   year: number;
@@ -79,6 +84,8 @@ export type SeriesRecord = {
   genres: string[];
   languages: string[];
   countries: string[];
+  cast?: PersonCredit[];
+  crew?: PersonCredit[];
   posterUrl: string;
   backdropUrl: string;
   imdbRating?: number;

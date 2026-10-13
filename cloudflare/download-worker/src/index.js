@@ -21,11 +21,20 @@ async function payloadFromToken(token, secret) {
   const [body, signature, ...extra] = token.split('.');
   if (!body || !signature || extra.length || !equal(await hmac(secret, body), bytes(signature))) throw new Error('invalid');
   const sealed = bytes(body); if (sealed.length < 29) throw new Error('invalid');
-  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(`cinerusubs-download-encryption:${secret}`));
-  const key = await crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['decrypt']);
   const cipherAndTag = new Uint8Array(sealed.length - 28 + 16); cipherAndTag.set(sealed.slice(28)); cipherAndTag.set(sealed.slice(12, 28), sealed.length - 28);
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: sealed.slice(0, 12), tagLength: 128 }, key, cipherAndTag);
-  const payload = JSON.parse(decoder.decode(plain));
+  let payload;
+  for (const namespace of ['cineseya', 'cinerusubs']) {
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', encoder.encode(`${namespace}-download-encryption:${secret}`));
+      const key = await crypto.subtle.importKey('raw', digest, 'AES-GCM', false, ['decrypt']);
+      const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: sealed.slice(0, 12), tagLength: 128 }, key, cipherAndTag);
+      payload = JSON.parse(decoder.decode(plain));
+      break;
+    } catch {
+      // Try the legacy namespace so already-issued links remain valid during the rename.
+    }
+  }
+  if (!payload) throw new Error('invalid');
   if (!payload.mediaVersionId || !payload.objectKey || !payload.exp || payload.exp * 1000 <= Date.now()) throw new Error('expired');
   return payload;
 }

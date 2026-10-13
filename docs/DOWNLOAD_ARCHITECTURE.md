@@ -2,7 +2,7 @@
 
 ## Storage boundaries
 
-`cinerusubs-media` is private and contains full video files, HLS manifests/segments, and subtitle files. `cinerusubs-assets` contains posters, backdrops, avatars, and other presentation assets. Every `MediaAsset` stores its bucket and object key; every `MediaVersion` binds its direct file to the media bucket. Public API responses omit object keys, bucket credentials, mirror target URLs, and presigned R2 URLs.
+`cineseya-media` is private and contains full video files, HLS manifests/segments, and subtitle files. `cineseya-assets` contains posters, backdrops, avatars, and other presentation assets. Every `MediaAsset` stores its bucket and object key; every `MediaVersion` binds its direct file to the media bucket. Public API responses omit object keys, bucket credentials, mirror target URLs, and presigned R2 URLs.
 
 Object keys are generated on the server from a sanitized basename and random UUID:
 
@@ -18,17 +18,19 @@ The uploader uses single-part presigned `PUT` for small files and 100 MiB multip
 ## Direct-download sequence
 
 1. A title page receives safe media-version and mirror metadata only.
-2. The user opens the quality-grouped download modal and selects the CineruSubs source.
-3. The branded `/download/<media-version-id>` page shows an honest three-second preparation state.
-4. `/api/download/<media-version-id>` rate-limits the requester, reloads title/version rights and state, checks the active asset, and creates a 90-second opaque AES-256-GCM payload with an HMAC-SHA-256 signature.
-5. `/api/download/file/<token>` verifies and decrypts the token, repeats live authorization and object-scope checks, increments counters, and records the event.
-6. With `DOWNLOAD_WORKER_ENABLED=false`, the gateway redirects to a short-lived R2 attachment URL. With the Worker enabled, it redirects to `${DOWNLOAD_DOMAIN}/v1/files/<token>`; the Worker verifies signature, expiry, media-bucket scope, and object key, then streams the R2 object with `GET`, `HEAD`, byte-range, `206`, `Content-Range`, and `Accept-Ranges` support.
+2. The user opens the quality-grouped download modal and selects CineSeya Direct or a real configured mirror.
+3. `/api/download/verify/file` checks live rights, the active asset, file size, object availability, or the selected mirror's server-side health result. It stores only a hash of the opaque 10-minute verification token.
+4. `/api/download/verify/security` enforces step order, client binding, same-origin policy, rate limits, and Cloudflare Turnstile when configured.
+5. `/api/download/verify/generate` repeats rights, media, asset, deletion, and server checks before issuing an opaque ready-page reference.
+6. The ready page calls `/api/download/<media-version-id>` only after all steps. That endpoint reloads authorization and creates a 90-second AES-256-GCM payload with an HMAC-SHA-256 signature.
+7. `/api/download/file/<token>` verifies and decrypts the token, repeats live authorization and object-scope checks, increments counters, and records the event.
+8. With `DOWNLOAD_WORKER_ENABLED=false`, the gateway redirects to a short-lived R2 attachment URL. With the Worker enabled, it redirects to `${DOWNLOAD_DOMAIN}/v1/files/<token>`; the Worker verifies signature, expiry, media-bucket scope, and object key, then streams the R2 object with `GET`, `HEAD`, byte-range, `206`, `Content-Range`, and `Accept-Ranges` support.
 
 Tokens carry no credentials. They expire quickly, are scoped to one bucket/key/version, and are sent only through no-store pages and responses. Rotating `DOWNLOAD_SIGNING_SECRET` invalidates outstanding tokens.
 
 ## Mirrors and health
 
-Mirror target URLs remain server-side. Public responses expose provider metadata and an application redirect path. That redirect reloads version/title state, checks distribution rights, rate-limits, records the provider download, and then redirects. Admins may add, prioritize, disable, and health-check HTTPS mirrors. URL validation rejects embedded credentials, localhost, loopback, link-local, and private IPv4 targets. A production egress policy should also block private/reserved ranges after DNS resolution to prevent DNS-rebinding SSRF.
+Mirror target URLs remain server-side. Public responses expose provider metadata and a verification-page path. The final redirect requires a completed verification session, reloads version/title state, checks distribution rights, validates the destination again, rate-limits, records the provider click, and then redirects. Admins may add, prioritize, enable, disable, delete, edit, reorder, and health-check HTTPS mirrors. URL validation rejects embedded credentials, localhost, loopback, link-local, private IPv4/IPv6 targets, metadata services, and DNS names resolving to private addresses.
 
 ## HLS playback
 

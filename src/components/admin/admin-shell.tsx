@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, BarChart3, Captions, ChevronLeft, CircleUserRound, Clapperboard, Database, Film, FolderKanban, Gauge, Gavel, Home, KeyRound, Languages, Menu, MessageSquare, Settings, ShieldCheck, Tags, UsersRound, X } from 'lucide-react';
+import { Activity, BarChart3, Captions, ChevronLeft, CircleUserRound, Clapperboard, Cpu, Database, Film, FolderKanban, Gauge, Gavel, Home, KeyRound, Languages, Menu, MessageSquare, Settings, ShieldCheck, Tags, UsersRound, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
@@ -9,8 +9,8 @@ import { Logo } from '@/components/ui/logo';
 import type { AuthUser } from '@/types/auth';
 
 const navigation = [
-  ['Overview','/admin',Gauge], ['Movies','/admin/movies',Film], ['TV series','/admin/series',Clapperboard], ['Subtitles','/admin/subtitles',Captions],
-  ['Translators','/admin/translators',Languages], ['Homepage','/admin/homepage',Home], ['Taxonomies','/admin/taxonomies',Tags], ['Media storage','/admin/media',Database],
+  ['Overview','/admin',Gauge], ['Movies','/admin/movies',Film], ['TV series','/admin/series',Clapperboard], ['Subtitles','/admin/subtitles',Captions], ['Subtitle requests','/admin/subtitle-requests',Captions],
+  ['Translators','/admin/translators',Languages], ['Homepage','/admin/homepage',Home], ['Taxonomies','/admin/taxonomies',Tags], ['Media storage','/admin/media',Database], ['Transcoding','/admin/transcoding',Cpu],
   ['Users','/admin/users',UsersRound], ['Comments','/admin/comments',MessageSquare], ['Reports','/admin/reports',ShieldCheck], ['Takedowns','/admin/takedowns',Gavel],
   ['Analytics','/admin/analytics',BarChart3], ['Messages','/admin/messages',FolderKanban], ['Audit log','/admin/audit',Activity], ['Settings','/admin/settings',Settings],
 ] as const;

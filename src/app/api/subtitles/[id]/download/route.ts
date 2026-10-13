@@ -6,6 +6,7 @@ import { apiError } from '@/lib/http';
 import { enforceRateLimit, requestClientKey } from '@/lib/rate-limit';
 import { signedDownloadUrl } from '@/lib/r2';
 import { DownloadEvent, Subtitle } from '@/models';
+import { recordAnalyticsEvent } from '@/services/analytics';
 
 const ALLOWED_FORMATS = new Set(['srt','ass','vtt','zip']);
 const safeName = (name:string) => name.replace(/[^a-zA-Z0-9._-]/g,'_');
@@ -35,6 +36,7 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
       signedDownloadUrl(String(subtitle.fileKey),safeName(String(subtitle.fileName))),
       Subtitle.updateOne({_id:subtitle._id},{$inc:{downloadCount:1}}),
       DownloadEvent.create({kind:'subtitle',targetId:subtitle._id,contentId:subtitle.movie??subtitle.episode,ipHash:requestClientKey(request)}),
+      recordAnalyticsEvent(request,{eventType:'subtitle_download',contentType:'subtitle',contentId:String(subtitle._id)}),
     ]);
     return Response.redirect(url,302);
   }catch(error){return apiError(error)}

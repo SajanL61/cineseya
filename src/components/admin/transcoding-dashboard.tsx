@@ -1,0 +1,18 @@
+'use client';
+
+import { Ban, ExternalLink, RotateCcw } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { readCsrfToken } from '@/lib/client/browser-brand';
+import { uploadApiFetch as fetch } from '@/lib/client/upload-json';
+
+type Job = { _id: string; stream?: string; title?: string; contentId?: string; status?: string; currentStage?: string; progressPercent?: number; etaSeconds?: number; source?: { height?: number; width?: number }; requestedRenditions?: string[]; completedRenditions?: Array<{ name?: string }>; startedAt?: string; createdAt?: string; safeErrorMessage?: string };
+const csrf = readCsrfToken;
+
+export function TranscodingDashboard({ jobs }: { jobs: Job[] }) {
+  const router = useRouter(); const [error, setError] = useState(''); const [pending, setPending] = useState('');
+  async function action(id: string, value: 'retry' | 'cancel' | 'reprocess') { setPending(id); setError(''); const response = await fetch(`/api/admin/transcoding/jobs/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrf() }, body: JSON.stringify({ action: value }) }); if (!response.ok) setError((await response.json()).error?.message || 'Job update failed.'); else router.refresh(); setPending(''); }
+  async function deleteStream(id: string) { if (!window.confirm('Delete only this HLS streaming package? The master, direct downloads, and subtitles will be kept.')) return; setPending(id); setError(''); const response = await fetch(`/api/admin/streams/${id}`, { method: 'DELETE', headers: { 'x-csrf-token': csrf() } }); if (!response.ok) setError((await response.json()).error?.message || 'Stream deletion failed.'); else router.refresh(); setPending(''); }
+  return <>{error&&<p className="admin-form-error">{error}</p>}<div className="transcode-table"><div className="transcode-table-head"><span>Movie</span><span>Source</span><span>Job</span><span>Progress</span><span>Started / ETA</span><span>Actions</span></div>{jobs.map((job)=><article key={job._id}><span><b>{job.title || 'Untitled'}</b><small>{job.completedRenditions?.map((item)=>item.name).filter(Boolean).join(', ') || job.requestedRenditions?.join(', ') || 'Automatic'}</small></span><span>{job.source?.height ? `${job.source.width}×${job.source.height}` : 'Awaiting probe'}</span><span><b>{job.status}</b><small>{String(job.currentStage || 'queued').replaceAll('_',' ')}</small></span><span><progress max="100" value={Number(job.progressPercent || 0)}/><small>{Math.round(Number(job.progressPercent || 0))}%</small></span><span>{job.startedAt ? new Date(job.startedAt).toLocaleString('en-LK') : job.createdAt ? new Date(job.createdAt).toLocaleString('en-LK') : '—'}{job.etaSeconds!==undefined?<small>ETA ~{Math.max(1,Math.ceil(job.etaSeconds/60))} min</small>:null}</span><span className="transcode-actions">{['queued','processing','uploading'].includes(String(job.status))&&<button disabled={pending===job._id} onClick={()=>action(job._id,'cancel')}><Ban/>Cancel</button>}{['failed','cancelled'].includes(String(job.status))&&<button disabled={pending===job._id} onClick={()=>action(job._id,'retry')}><RotateCcw/>Retry</button>}{job.status==='completed'&&<button disabled={pending===job._id} onClick={()=>action(job._id,'reprocess')}><RotateCcw/>Reprocess</button>}{job.status==='completed'&&job.stream&&<button disabled={pending===job.stream} onClick={()=>deleteStream(job.stream!)}><Ban/>Delete stream</button>}<Link href={`/admin/movies/${job.contentId}`}><ExternalLink/>Open</Link></span>{job.safeErrorMessage&&<p>{job.safeErrorMessage}</p>}</article>)}</div></>;
+}

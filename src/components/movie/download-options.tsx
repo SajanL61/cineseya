@@ -24,7 +24,7 @@ function VersionGroup({ version }: { version: MediaVersionDto }) {
     <header><div><span>{version.quality}</span><h3>{version.resolution}</h3></div><b>{size(version.fileSize)}</b></header>
     <div className="download-version-tags">{labels.filter(Boolean).map((label) => <span key={label}>{label}</span>)}</div>
     <div className="download-source-block"><small>Primary</small>{version.directAvailable
-      ? <a className="download-direct-link" href={`/download/${version.id}`}><span><b>CineSeya.lk Direct</b><small><ShieldCheck/> Recommended · Resume supported</small></span><HardDriveDownload/></a>
+      ? <a className="download-direct-link" href={`/download/${version.downloadId || version.id}`}><span><b>CineSeya.lk Direct</b><small><ShieldCheck/> Recommended · Resume supported</small></span><HardDriveDownload/></a>
       : <div className="download-source-unavailable"><RotateCcw/><span><b>Direct download unavailable</b><small>Configure the private media bucket or use an active mirror.</small></span></div>}
     </div>
     {fast && <div className="download-source-block"><small>Secondary</small><MirrorLink mirror={fast} prominent/></div>}

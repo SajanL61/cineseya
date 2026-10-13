@@ -19,7 +19,7 @@ type DiagnosticResult = {
 async function diagnoseBucket(bucket: R2BucketKind, label: string): Promise<DiagnosticResult> {
   const result: DiagnosticResult = { bucket, label, connected: false, write: false, read: false, delete: false };
   const key = `diagnostics/${randomUUID()}.txt`;
-  const payload = new TextEncoder().encode(`cinerusubs-r2-diagnostic:${randomUUID()}`);
+  const payload = new TextEncoder().encode(`cineseya-r2-diagnostic:${randomUUID()}`);
   let created = false;
   let stage = 'write';
   try {

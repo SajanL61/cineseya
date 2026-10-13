@@ -7,7 +7,7 @@ export function sanitizeStorageFileName(fileName: string) {
   return base.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/-+/g, '-').replace(/^[-.]+/, '').slice(-120) || 'file';
 }
 
-export function buildStorageObjectKey(input: { kind: UploadKind; fileName: string; linkedModel?: string; linkedId?: string }) {
+export function buildStorageObjectKey(input: { kind: UploadKind; purpose?: 'download' | 'stream_master'; fileName: string; linkedModel?: string; linkedId?: string }) {
   const fileName = sanitizeStorageFileName(input.fileName);
   const id = input.linkedId?.replace(/[^a-f0-9]/gi, '') || 'unassigned';
   const nonce = randomUUID();
@@ -15,6 +15,7 @@ export function buildStorageObjectKey(input: { kind: UploadKind; fileName: strin
   if (input.kind === 'backdrop') return `backdrops/${input.linkedModel === 'Series' ? 'series' : 'movies'}/${id}/${nonce}-${fileName}`;
   if (input.kind === 'avatar') return `avatars/${id}/${nonce}-${fileName}`;
   if (input.kind === 'subtitle') return `subtitles/${input.linkedModel === 'Episode' ? 'episodes' : 'movies'}/${id}/${nonce}-${fileName}`;
-  if (input.kind === 'media') return `media/${input.linkedModel === 'Episode' ? 'episodes' : 'movies'}/${id}/${nonce}/${fileName}`;
+  if (input.kind === 'media' && input.purpose === 'stream_master') return `masters/${input.linkedModel === 'Episode' ? 'episodes' : 'movies'}/${id}/${nonce}/original-${fileName}`;
+  if (input.kind === 'media') return `downloads/${input.linkedModel === 'Episode' ? 'episodes' : 'movies'}/${id}/${nonce}/${fileName}`;
   return `other/${id}/${nonce}-${fileName}`;
 }

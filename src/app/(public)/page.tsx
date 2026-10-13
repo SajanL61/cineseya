@@ -5,12 +5,16 @@ import { TrendingHeroCarousel } from '@/components/movie/trending-hero-carousel'
 import { SubtitleCard } from '@/components/subtitle/subtitle-card';
 import { SeriesCard } from '@/components/tv/series-card';
 import { getMovies, getSeries, getSubtitles } from '@/services/catalog';
+import { currentUser } from '@/lib/auth';
+import { getContinueWatching } from '@/services/viewing';
+import { ContinueWatchingRow } from '@/components/player/continue-watching-row';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { alternates: { canonical: '/' } };
 
 export default async function HomePage() {
-  const [movies, series, subtitles] = await Promise.all([getMovies(), getSeries(), getSubtitles()]);
+  const user = await currentUser();
+  const [movies, series, subtitles, continueWatching] = await Promise.all([getMovies(), getSeries(), getSubtitles(), user ? getContinueWatching(user.id) : Promise.resolve([])]);
   const trending = movies.filter((movie) => movie.trending);
   const carouselMovies = [...trending, ...movies.filter((movie) => !movie.trending)].slice(0, 6);
   const topRated = [...movies].sort((a, b) => (b.imdbRating ?? 0) - (a.imdbRating ?? 0));
@@ -18,6 +22,7 @@ export default async function HomePage() {
   return <>
     <TrendingHeroCarousel movies={carouselMovies}/>
     <div className="home-content">
+      <ContinueWatchingRow items={continueWatching}/>
       <MediaRow eyebrow="What everyone is watching" title="Trending Now" href="/discover?sort=trending" movies={trending} />
       <section className="media-section subtitle-home-section"><header className="section-heading"><div><span>Freshly timed and reviewed</span><h2>Latest Sinhala Subtitles</h2></div><Link href="/subtitles/sinhala">View all <span aria-hidden="true">→</span></Link></header><div className="subtitle-home-list">{subtitles.filter((subtitle) => subtitle.languageCode === 'si').slice(0, 3).map((subtitle) => <SubtitleCard key={subtitle.id} subtitle={subtitle} compact />)}</div></section>
       <MediaRow eyebrow="Recently added" title="New Releases" href="/movies?sort=newest" movies={newReleases} />

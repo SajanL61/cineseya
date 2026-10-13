@@ -1,9 +1,9 @@
-# CineruSubs migration audit
+# CineSeya migration audit
 
 Date: 2026-10-05  
 Baseline commit: `287c3e8`  
 Baseline branch: `backup/clothing-store-baseline`  
-Migration branch: `migration/cinerusubs`
+Migration branch: `migration/cineseya`
 
 Premium delivery backup: `backup/pre-premium-download-upgrade-20261008`
 Premium delivery branch: `upgrade/premium-downloads`
@@ -21,11 +21,11 @@ The baseline is a same-origin React 19/Vite SSR application served by Express 5 
 
 ## Retirement map
 
-Product variants, inventory, orders, reservations, payments, coupons, delivery zones, returns, cart, checkout, order tracking, pricing, COD/bank transfer, commerce workers, commerce tests, and STYLEHUB branding are retired only after their CineruSubs replacements pass the applicable phase gate.
+Product variants, inventory, orders, reservations, payments, coupons, delivery zones, returns, cart, checkout, order tracking, pricing, COD/bank transfer, commerce workers, commerce tests, and STYLEHUB branding are retired only after their CineSeya replacements pass the applicable phase gate.
 
 ## Data isolation
 
-CineruSubs always connects with the explicit database name `cinerusubs`. It does not rename, migrate into, or reuse the `clothing_store` database. Administrator accounts are recreated through a one-time command. Commerce customer and order data are not copied.
+CineSeya always connects with the explicit database name `cinerusubs`. It does not rename, migrate into, or reuse the `clothing_store` database. Administrator accounts are recreated through a one-time command. Commerce customer and order data are not copied.
 
 ## Phase gates
 

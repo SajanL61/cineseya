@@ -1,6 +1,6 @@
-# CineruSubs download Worker
+# CineSeya download Worker
 
-This Worker serves only objects from the `cinerusubs-media` binding after validating a short-lived token created by the application. It supports range requests for resumable downloads.
+This Worker serves only objects from the private `cineseya-media` binding after validating a short-lived token created by the application. It supports `GET`, `HEAD`, and range requests for resumable downloads.
 
 ```powershell
 Copy-Item wrangler.toml.example wrangler.toml

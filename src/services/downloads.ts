@@ -13,12 +13,16 @@ import type { DownloadMirrorDto, MediaVersionDto } from '@/types/media';
 type LeanRecord = Record<string, unknown>;
 
 function mirrorDto(row: LeanRecord): DownloadMirrorDto {
+  const storedHealth = String(row.active === false ? 'disabled' : row.healthStatus ?? 'unknown');
+  const healthStatus = storedHealth === 'unavailable' ? 'offline' : storedHealth as DownloadMirrorDto['healthStatus'];
   return {
     id: String(row._id), providerName: String(row.providerName), providerType: row.providerType as DownloadMirrorDto['providerType'],
-    priority: Number(row.priority ?? 100), supportsResume: Boolean(row.supportsResume), requiresLogin: Boolean(row.requiresLogin),
-    healthStatus: (row.healthStatus ?? 'unknown') as DownloadMirrorDto['healthStatus'],
+    label: row.label ? String(row.label) : undefined,
+    priority: Number(row.priority ?? 100), supportsResume: Boolean(row.supportsResume), supportsRange: Boolean(row.supportsRange), requiresLogin: Boolean(row.requiresLogin),
+    healthStatus,
+    latencyMs: row.latencyMs === undefined ? undefined : Number(row.latencyMs),
     lastCheckedAt: row.lastCheckedAt ? new Date(row.lastCheckedAt as Date).toISOString() : undefined,
-    redirectPath: `/api/download/mirror/${String(row._id)}`,
+    redirectPath: `/download/${String(row.mediaVersion)}?server=${String(row._id)}`,
   };
 }
 
@@ -80,13 +84,20 @@ export async function getDownloadPageData(mediaVersionId: string) {
     return null;
   }
   try {
-    const { version, content } = await resolveAuthorizedMediaVersion(mediaVersionId);
+    const { version, content, asset } = await resolveAuthorizedMediaVersion(mediaVersionId);
     let backHref = `/movies/${String(content.slug)}`;
     if (version.contentType === 'episode' && content.series) {
       const series = await Series.findById(content.series).select('slug').lean();
       backHref = `/tv/${String(series?.slug ?? '')}`;
     }
     const mirrors = await DownloadMirror.find({ mediaVersion: version._id, active: true }).select('-url').sort({ priority: 1 }).lean();
-    return { version: versionDto(version as LeanRecord, true, mirrors.map((mirror) => mirrorDto(mirror as LeanRecord))), title: String(content.title), posterUrl: resolvePublicAssetUrl(content.posterUrl ?? content.thumbnailUrl, '/media/fallback-poster.svg')!, backHref };
+    const directAvailable = r2Configured('media') && String(version.storageBucket) === String(asset.bucket);
+    return {
+      version: versionDto(version as LeanRecord, directAvailable, mirrors.map((mirror) => mirrorDto(mirror as LeanRecord))),
+      title: String(content.title),
+      year: Number(content.year ?? (content.releaseDate ? new Date(content.releaseDate as Date).getUTCFullYear() : 0)),
+      posterUrl: resolvePublicAssetUrl(content.posterUrl ?? content.thumbnailUrl, '/media/fallback-poster.svg')!,
+      backHref,
+    };
   } catch { return null; }
 }

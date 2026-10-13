@@ -1,7 +1,7 @@
 [
   {
     "AllowedOrigins": [
-      "https://www.cinerusubs.com"
+      "https://cineseya.lk"
     ],
     "AllowedMethods": [
       "GET",

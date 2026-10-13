@@ -57,6 +57,8 @@ const movieSchema = new Schema(
     type: { type: String, enum: ['movie'], default: 'movie', immutable: true },
     originalTitle: String,
     sinhalaTitle: String,
+    alternativeTitles: [{ type: String, trim: true, maxlength: 240 }],
+    searchAliases: [{ type: String, trim: true, maxlength: 240 }],
     slug,
     overview: { type: String, required: true, maxlength: 8_000 },
     shortDescription: { type: String, maxlength: 500 },
@@ -104,7 +106,9 @@ movieSchema.index({ publicationStatus: 1, trending: -1, viewCount: -1 });
 
 const seriesSchema = new Schema(
   {
-    title: { type: String, required: true }, originalTitle: String, sinhalaTitle: String, slug, overview: { type: String, required: true },
+    title: { type: String, required: true }, originalTitle: String, sinhalaTitle: String,
+    alternativeTitles: [{ type: String, trim: true, maxlength: 240 }], searchAliases: [{ type: String, trim: true, maxlength: 240 }],
+    slug, overview: { type: String, required: true },
     year: { type: Number, required: true, index: true }, ageRating: String, genres: [{ type: String, index: true }],
     languages: [{ type: String, index: true }], countries: [{ type: String, index: true }], posterKey: String, posterUrl: String,
     backdropKey: String, backdropUrl: String, trailerUrl: String, imdbId: String, tmdbId: String, imdbRating: Number, tmdbRating: Number,
@@ -199,15 +203,134 @@ const downloadMirrorSchema = new Schema(
   {
     mediaVersion: { type: Schema.Types.ObjectId, ref: 'MediaVersion', required: true, index: true },
     providerName: { type: String, required: true, trim: true, maxlength: 80 },
-    providerType: { type: String, enum: ['external', 'telegram', 'cloud_drive', 'custom'], required: true },
+    providerType: { type: String, enum: ['dotflix', 'telegram', 'backup', 'external', 'cloud_drive', 'custom'], required: true, index: true },
+    label: { type: String, trim: true, maxlength: 80 },
     url: { type: String, required: true, select: false }, priority: { type: Number, default: 100, index: true },
-    supportsResume: { type: Boolean, default: false }, requiresLogin: { type: Boolean, default: false }, active: { type: Boolean, default: true, index: true },
-    lastCheckedAt: Date, healthStatus: { type: String, enum: ['unknown', 'online', 'unavailable'], default: 'unknown', index: true },
+    supportsResume: { type: Boolean, default: false }, supportsRange: { type: Boolean, default: false }, requiresLogin: { type: Boolean, default: false }, active: { type: Boolean, default: true, index: true },
+    lastCheckedAt: Date, lastSuccessfulAt: Date, latencyMs: { type: Number, min: 0 }, failureCount: { type: Number, min: 0, default: 0 },
+    healthStatus: { type: String, enum: ['unknown', 'online', 'slow', 'offline', 'disabled', 'unavailable'], default: 'unknown', index: true },
+    notes: { type: String, trim: true, maxlength: 2_000 },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' }, updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true },
 );
 downloadMirrorSchema.index({ mediaVersion: 1, active: 1, priority: 1 });
+
+const downloadVerificationSessionSchema = new Schema(
+  {
+    tokenHash: { type: String, required: true, unique: true, select: false },
+    readyTokenHash: { type: String, unique: true, sparse: true, select: false },
+    mediaVersion: { type: Schema.Types.ObjectId, ref: 'MediaVersion', required: true, index: true },
+    subtitle: { type: Schema.Types.ObjectId, ref: 'Subtitle', index: true },
+    mirror: { type: Schema.Types.ObjectId, ref: 'DownloadMirror', index: true },
+    providerType: { type: String, enum: ['direct', 'dotflix', 'telegram', 'backup', 'external', 'cloud_drive', 'custom'], required: true },
+    clientKeyHash: { type: String, required: true, index: true, select: false },
+    step1CompletedAt: Date,
+    step2CompletedAt: Date,
+    step3CompletedAt: Date,
+    expiresAt: { type: Date, required: true, expires: 0, index: true },
+  },
+  { timestamps: true },
+);
+downloadVerificationSessionSchema.index({ mediaVersion: 1, expiresAt: 1 });
+
+const renditionSchema = new Schema(
+  {
+    name: { type: String, required: true }, width: { type: Number, required: true, min: 2 }, height: { type: Number, required: true, min: 2 },
+    videoBitrate: { type: Number, required: true, min: 1 }, audioBitrate: { type: Number, required: true, min: 0 },
+    bandwidth: { type: Number, required: true, min: 1 }, averageBandwidth: { type: Number, required: true, min: 1 }, codecs: { type: String, required: true },
+    playlistKey: { type: String, required: true }, segmentCount: { type: Number, required: true, min: 1 }, bytes: { type: Number, required: true, min: 1 },
+  },
+  { _id: false },
+);
+
+const mediaStreamSchema = new Schema(
+  {
+    contentId: { type: Schema.Types.ObjectId, required: true, index: true },
+    contentType: { type: String, enum: ['movie', 'episode'], required: true, index: true },
+    masterAsset: { type: Schema.Types.ObjectId, ref: 'MediaAsset', required: true, index: true },
+    profileVersion: { type: String, required: true, index: true },
+    status: { type: String, enum: ['processing', 'ready', 'failed', 'deleting', 'deleted'], default: 'processing', index: true },
+    prefix: { type: String, required: true, unique: true },
+    manifestKey: String,
+    renditions: [renditionSchema],
+    source: {
+      width: Number, height: Number, duration: Number, frameRate: Number, videoCodec: String, audioCodec: String,
+      bitrate: Number, aspectRatio: String, audioStreams: [Schema.Types.Mixed], subtitleStreams: [Schema.Types.Mixed],
+    },
+    totalBytes: { type: Number, default: 0, min: 0 },
+    segmentCount: { type: Number, default: 0, min: 0 },
+    rightsStatus: rights,
+    active: { type: Boolean, default: false, index: true },
+    verifiedAt: Date,
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  },
+  { timestamps: true },
+);
+mediaStreamSchema.index({ contentId: 1, contentType: 1, status: 1, active: 1 });
+mediaStreamSchema.index({ masterAsset: 1, profileVersion: 1, createdAt: -1 });
+
+const transcodeJobSchema = new Schema(
+  {
+    contentType: { type: String, enum: ['movie', 'episode'], required: true, index: true },
+    contentId: { type: Schema.Types.ObjectId, required: true, index: true },
+    masterAsset: { type: Schema.Types.ObjectId, ref: 'MediaAsset', required: true, index: true },
+    masterObjectKey: { type: String, required: true },
+    stream: { type: Schema.Types.ObjectId, ref: 'MediaStream', required: true, index: true },
+    dedupeKey: { type: String, required: true, unique: true },
+    profileVersion: { type: String, required: true },
+    status: { type: String, enum: ['queued', 'processing', 'uploading', 'completed', 'failed', 'cancelled'], default: 'queued', index: true },
+    source: {
+      width: Number, height: Number, duration: Number, frameRate: Number, videoCodec: String, audioCodec: String,
+      bitrate: Number, aspectRatio: String, audioStreams: [Schema.Types.Mixed], subtitleStreams: [Schema.Types.Mixed],
+    },
+    requestedRenditions: [{ type: String }],
+    completedRenditions: [renditionSchema],
+    progressPercent: { type: Number, default: 0, min: 0, max: 100 },
+    currentStage: { type: String, default: 'queued' },
+    startedAt: Date, completedAt: Date, failedAt: Date,
+    errorCode: String,
+    safeErrorMessage: { type: String, maxlength: 500 },
+    attempts: { type: Number, default: 0, min: 0 },
+    workerId: String,
+    lockedAt: Date,
+    cancellationRequestedAt: Date,
+    language: String,
+    defaultAudio: String,
+    subtitleHandling: { type: String, enum: ['separate', 'ignore'], default: 'separate' },
+    notes: { type: String, maxlength: 2_000 },
+    keepMaster: { type: Boolean, default: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  },
+  { timestamps: true },
+);
+transcodeJobSchema.index({ status: 1, createdAt: 1 });
+transcodeJobSchema.index({ status: 1, lockedAt: 1 });
+
+const streamSessionSchema = new Schema(
+  {
+    tokenHash: { type: String, required: true, unique: true, select: false },
+    mediaStream: { type: Schema.Types.ObjectId, ref: 'MediaStream', required: true, index: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    clientKeyHash: { type: String, required: true, index: true, select: false },
+    expiresAt: { type: Date, required: true, expires: 0, index: true },
+    lastAccessAt: { type: Date, required: true },
+  },
+  { timestamps: true },
+);
+
+const workerHeartbeatSchema = new Schema(
+  {
+    workerId: { type: String, required: true, unique: true },
+    status: { type: String, enum: ['online', 'busy', 'stopping'], required: true },
+    currentJob: { type: Schema.Types.ObjectId, ref: 'TranscodeJob' },
+    progressPercent: { type: Number, min: 0, max: 100 },
+    version: String,
+    lastHeartbeatAt: { type: Date, required: true, index: true },
+  },
+  { timestamps: true },
+);
 
 const taxonomySchema = new Schema(
   { name: { type: String, required: true }, slug, description: String, localeNames: Schema.Types.Mixed, visible: { type: Boolean, default: true }, displayOrder: { type: Number, default: 0 } },
@@ -253,6 +376,33 @@ const progressSchema = new Schema(
 progressSchema.index({ user: 1, contentType: 1, contentId: 1 }, { unique: true });
 progressSchema.index({ user: 1, lastViewedAt: -1 });
 
+const subtitleSubscriptionSchema = new Schema(
+  {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    contentType: { type: String, enum: ['movie', 'episode'], required: true, index: true },
+    contentId: { type: Schema.Types.ObjectId, required: true, index: true },
+    languageCode: { type: String, required: true, lowercase: true, trim: true, index: true },
+  },
+  { timestamps: true },
+);
+subtitleSubscriptionSchema.index({ user: 1, contentType: 1, contentId: 1, languageCode: 1 }, { unique: true });
+subtitleSubscriptionSchema.index({ contentType: 1, contentId: 1, languageCode: 1, createdAt: -1 });
+
+const subtitleRequestSchema = new Schema(
+  {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    contentType: { type: String, enum: ['movie', 'episode'], required: true, index: true },
+    contentId: { type: Schema.Types.ObjectId, required: true, index: true },
+    languageCode: { type: String, required: true, lowercase: true, trim: true, index: true },
+    status: { type: String, enum: ['open', 'fulfilled', 'withdrawn'], default: 'open', index: true },
+    fulfilledAt: Date,
+    fulfilledBySubtitle: { type: Schema.Types.ObjectId, ref: 'Subtitle' },
+  },
+  { timestamps: true },
+);
+subtitleRequestSchema.index({ user: 1, contentType: 1, contentId: 1, languageCode: 1 }, { unique: true });
+subtitleRequestSchema.index({ status: 1, languageCode: 1, createdAt: -1 });
+
 const downloadEventSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: 'User', index: true }, kind: { type: String, enum: ['subtitle', 'media'], required: true, index: true },
@@ -266,6 +416,30 @@ const downloadEventSchema = new Schema(
 );
 downloadEventSchema.index({ kind: 1, createdAt: -1 });
 downloadEventSchema.index({ mediaVersion: 1, createdAt: -1 });
+
+const analyticsEventSchema = new Schema(
+  {
+    eventType: {
+      type: String,
+      enum: ['direct_download_started', 'mirror_click', 'dotflix_click', 'telegram_mirror_click', 'subtitle_download', 'whatsapp_share', 'facebook_share', 'telegram_share', 'copy_link', 'watch_started', 'watch_25_percent', 'watch_50_percent', 'watch_75_percent', 'watch_completed', 'quality_selected', 'data_saver_enabled', 'buffer_event'],
+      required: true,
+      index: true,
+    },
+    contentType: { type: String, enum: ['movie', 'series', 'episode', 'subtitle', 'page'], index: true },
+    contentId: { type: String, trim: true, maxlength: 120, index: true },
+    mediaVersion: { type: Schema.Types.ObjectId, ref: 'MediaVersion', index: true },
+    mirror: { type: Schema.Types.ObjectId, ref: 'DownloadMirror', index: true },
+    providerType: { type: String, trim: true, maxlength: 40, index: true },
+    quality: { type: String, trim: true, maxlength: 20, index: true },
+    durationSeconds: { type: Number, min: 0, max: 86_400 },
+    path: { type: String, trim: true, maxlength: 500 },
+    ipHash: { type: String, select: false },
+    deviceCategory: { type: String, enum: ['mobile', 'tablet', 'desktop', 'unknown'], default: 'unknown' },
+  },
+  { timestamps: true },
+);
+analyticsEventSchema.index({ eventType: 1, createdAt: -1 });
+analyticsEventSchema.index({ contentId: 1, createdAt: -1 });
 
 const searchEventSchema = new Schema(
   { user: { type: Schema.Types.ObjectId, ref: 'User', index: true }, query: { type: String, required: true, index: true }, normalizedQuery: { type: String, required: true, index: true }, resultCount: { type: Number, min: 0 }, ipHash: String, locale: String },
@@ -295,10 +469,35 @@ const reportSchema = new Schema(
   { timestamps: true },
 );
 const notificationSchema = new Schema(
-  { user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true }, type: { type: String, required: true }, payload: Schema.Types.Mixed, readAt: Date },
+  {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    type: { type: String, required: true, index: true },
+    category: { type: String, required: true, default: 'account', index: true },
+    eventKey: { type: String, trim: true },
+    payload: Schema.Types.Mixed,
+    channels: [{ type: String, enum: ['in_app', 'web_push', 'email', 'telegram'] }],
+    delivery: Schema.Types.Mixed,
+    readAt: Date,
+  },
   { timestamps: true },
 );
 notificationSchema.index({ user: 1, readAt: 1, createdAt: -1 });
+notificationSchema.index({ user: 1, eventKey: 1 }, { unique: true, sparse: true });
+
+const notificationPreferenceSchema = new Schema(
+  {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+    subtitlePublished: {
+      inApp: { type: Boolean, default: true }, webPush: { type: Boolean, default: false },
+      email: { type: Boolean, default: false }, telegram: { type: Boolean, default: false },
+    },
+    episodePublished: { inApp: { type: Boolean, default: true }, webPush: { type: Boolean, default: false }, email: { type: Boolean, default: false }, telegram: { type: Boolean, default: false } },
+    translatorPublished: { inApp: { type: Boolean, default: true }, webPush: { type: Boolean, default: false }, email: { type: Boolean, default: false }, telegram: { type: Boolean, default: false } },
+    commentReply: { inApp: { type: Boolean, default: true }, webPush: { type: Boolean, default: false }, email: { type: Boolean, default: false }, telegram: { type: Boolean, default: false } },
+    adminAnnouncement: { inApp: { type: Boolean, default: true }, webPush: { type: Boolean, default: false }, email: { type: Boolean, default: false }, telegram: { type: Boolean, default: false } },
+  },
+  { timestamps: true },
+);
 
 const contactMessageSchema = new Schema(
   { requester: { type: String, required: true }, email: { type: String, required: true }, message: { type: String, required: true }, status: { type: String, enum: ['new','reviewing','resolved'], default: 'new', index: true } },
@@ -322,6 +521,11 @@ export const TranslatorProfile = existingOrCreate('TranslatorProfile', translato
 export const MediaAsset = existingOrCreate('MediaAsset', mediaAssetSchema);
 export const MediaVersion = existingOrCreate('MediaVersion', mediaVersionSchema);
 export const DownloadMirror = existingOrCreate('DownloadMirror', downloadMirrorSchema);
+export const DownloadVerificationSession = existingOrCreate('DownloadVerificationSession', downloadVerificationSessionSchema);
+export const MediaStream = existingOrCreate('MediaStream', mediaStreamSchema);
+export const TranscodeJob = existingOrCreate('TranscodeJob', transcodeJobSchema);
+export const StreamSession = existingOrCreate('StreamSession', streamSessionSchema);
+export const WorkerHeartbeat = existingOrCreate('WorkerHeartbeat', workerHeartbeatSchema);
 export const Genre = existingOrCreate('Genre', taxonomySchema);
 export const Language = existingOrCreate('Language', taxonomySchema.clone());
 export const Collection = existingOrCreate('Collection', collectionSchema);
@@ -330,7 +534,10 @@ export const CommentLike = existingOrCreate('CommentLike', commentLikeSchema);
 export const Rating = existingOrCreate('Rating', ratingSchema);
 export const Watchlist = existingOrCreate('Watchlist', watchlistSchema);
 export const ViewingProgress = existingOrCreate('ViewingProgress', progressSchema);
+export const SubtitleSubscription = existingOrCreate('SubtitleSubscription', subtitleSubscriptionSchema);
+export const SubtitleRequest = existingOrCreate('SubtitleRequest', subtitleRequestSchema);
 export const DownloadEvent = existingOrCreate('DownloadEvent', downloadEventSchema);
+export const AnalyticsEvent = existingOrCreate('AnalyticsEvent', analyticsEventSchema);
 export const SearchEvent = existingOrCreate('SearchEvent', searchEventSchema);
 export const TakedownRequest = existingOrCreate('TakedownRequest', takedownSchema);
 export const SiteSetting = existingOrCreate('SiteSetting', simpleSettingSchema);
@@ -338,15 +545,17 @@ export const HomepageSection = existingOrCreate('HomepageSection', homepageSecti
 export const AuditLog = existingOrCreate('AuditLog', auditSchema);
 export const Report = existingOrCreate('Report', reportSchema);
 export const Notification = existingOrCreate('Notification', notificationSchema);
+export const NotificationPreference = existingOrCreate('NotificationPreference', notificationPreferenceSchema);
 export const ContactMessage = existingOrCreate('ContactMessage', contactMessageSchema);
 export const RateLimitEvent = existingOrCreate('RateLimitEvent', rateLimitSchema);
 
-export const cineruModels = [
-  User, Session, Movie, Series, Season, Episode, Subtitle, TranslatorProfile, MediaAsset, MediaVersion, DownloadMirror, Genre, Language,
-  Collection, Comment, CommentLike, Rating, Watchlist, ViewingProgress, DownloadEvent, SearchEvent, TakedownRequest, SiteSetting,
-  HomepageSection, AuditLog, Report, Notification, ContactMessage, RateLimitEvent,
+export const cineSeyaModels = [
+  User, Session, Movie, Series, Season, Episode, Subtitle, TranslatorProfile, MediaAsset, MediaVersion, DownloadMirror, DownloadVerificationSession,
+  MediaStream, TranscodeJob, StreamSession, WorkerHeartbeat, Genre, Language,
+  Collection, Comment, CommentLike, Rating, Watchlist, ViewingProgress, SubtitleSubscription, SubtitleRequest, DownloadEvent, AnalyticsEvent, SearchEvent, TakedownRequest, SiteSetting,
+  HomepageSection, AuditLog, Report, Notification, NotificationPreference, ContactMessage, RateLimitEvent,
 ];
 
-export async function ensureCineruIndexes() {
-  await Promise.all(cineruModels.map((model) => model.createIndexes()));
+export async function ensureCineSeyaIndexes() {
+  await Promise.all(cineSeyaModels.map((model) => model.createIndexes()));
 }

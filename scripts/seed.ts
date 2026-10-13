@@ -1,7 +1,7 @@
 import mongoose, { Types } from 'mongoose';
 import { connectDb } from '@/lib/db';
 import { demoMovies, demoSeries, demoSubtitles, demoTranslators } from '@/data/demo';
-import { ensureCineruIndexes, Episode, Genre, HomepageSection, Language, Movie, Season, Series, SiteSetting, Subtitle, TranslatorProfile } from '@/models';
+import { ensureCineSeyaIndexes, Episode, Genre, HomepageSection, Language, Movie, Season, Series, SiteSetting, Subtitle, TranslatorProfile } from '@/models';
 
 const genres = [...new Set([...demoMovies.flatMap((movie) => movie.genres), ...demoSeries.flatMap((series) => series.genres)])];
 const languages = [...new Set([...demoMovies.flatMap((movie) => movie.languages), ...demoMovies.flatMap((movie) => movie.subtitleLanguages), ...demoSeries.flatMap((series) => series.languages)])];
@@ -42,7 +42,7 @@ try {
     ['new-releases','New releases','movie_row',30],['top-rated','Top rated','movie_row',40],['latest-tv','Latest TV episodes','episode_row',50],['editors-picks',"Editors' picks",'movie_row',60],
   ] as const;
   for (const [key,title,type,displayOrder] of sections) await HomepageSection.updateOne({ key }, { $set: { title, type, displayOrder, enabled: true } }, { upsert: true });
-  await SiteSetting.updateOne({ key: 'catalog.seedVersion' }, { $set: { value: '2026-10-cinerusubs-v1' } }, { upsert: true });
-  await ensureCineruIndexes();
+  await SiteSetting.updateOne({ key: 'catalog.seedVersion' }, { $set: { value: '2026-10-cineseya-v1' } }, { upsert: true });
+  await ensureCineSeyaIndexes();
   process.stdout.write(`Seeded ${demoMovies.length} movies, ${demoSeries.length} series, ${demoTranslators.length} translators and ${demoSubtitles.length} draft subtitle records into cinerusubs.\n`);
 } finally { await mongoose.disconnect(); }

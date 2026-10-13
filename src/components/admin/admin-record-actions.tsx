@@ -3,6 +3,7 @@
 import { LoaderCircle, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { readCsrfToken } from '@/lib/client/browser-brand';
 import { ROLES } from '@/types/auth';
 
 const statusOptions: Record<string, string[]> = {
@@ -12,7 +13,7 @@ const statusOptions: Record<string, string[]> = {
   messages: ['new', 'reviewing', 'resolved'],
 };
 
-const csrf = () => decodeURIComponent(document.cookie.split('; ').find((item) => item.startsWith('cinerusubs_csrf='))?.split('=').slice(1).join('=') || '');
+const csrf = readCsrfToken;
 
 type Props = {
   resource: string;

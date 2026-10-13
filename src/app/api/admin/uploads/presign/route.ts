@@ -19,10 +19,10 @@ export async function POST(request: Request) {
       objectKey, bucket: r2BucketName(bucketKind), kind: safeInput.kind, fileName: safeInput.fileName,
       mimeType: safeInput.contentType, size: safeInput.size, checksum: safeInput.checksum, status: 'pending',
       linkedModel: safeInput.linkedModel, linkedId: safeInput.linkedId, uploadedBy: session.user.id,
-      metadata: { requestedAt: new Date(), bucketKind },
+      metadata: { requestedAt: new Date(), bucketKind, purpose: safeInput.purpose },
     });
     try {
-      const metadata = { assetid: String(asset._id), uploader: session.user.id };
+      const metadata = { assetid: String(asset._id), uploader: session.user.id, purpose: safeInput.purpose };
       const uploadUrl = await signedUploadUrl(objectKey, safeInput.contentType, metadata, 600, bucketKind);
       await AuditLog.create({ actor: session.user.id, action: 'media.presign', entity: 'MediaAsset', entityId: String(asset._id), metadata: { kind: safeInput.kind, fileName: safeInput.fileName, size: safeInput.size, bucket: asset.bucket } });
       return Response.json({ assetId: String(asset._id), objectKey, uploadUrl, method: 'PUT', headers: { 'Content-Type': safeInput.contentType }, expiresIn: 600 });

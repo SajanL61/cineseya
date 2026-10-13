@@ -1,5 +1,8 @@
 import 'server-only';
-import { AbortMultipartUploadCommand, CompleteMultipartUploadCommand, CreateMultipartUploadCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client, UploadPartCommand } from '@aws-sdk/client-s3';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import { pipeline } from 'node:stream/promises';
+import { AbortMultipartUploadCommand, CompleteMultipartUploadCommand, CreateMultipartUploadCommand, DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client, UploadPartCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { env } from './env';
 
@@ -78,6 +81,29 @@ export async function writeObjectBytes(key: string, bytes: Uint8Array, contentTy
   await getR2Client().send(new PutObjectCommand({ Bucket: r2BucketName(bucket), Key: key, Body: bytes, ContentType: contentType }));
 }
 
+export async function uploadObjectFile(key: string, filePath: string, contentType: string, bucket: R2BucketKind = 'media') {
+  const info = await stat(filePath);
+  await getR2Client().send(new PutObjectCommand({ Bucket: r2BucketName(bucket), Key: key, Body: createReadStream(filePath), ContentLength: info.size, ContentType: contentType }));
+  return info.size;
+}
+
+export async function downloadObjectFile(key: string, filePath: string, bucket: R2BucketKind = 'media') {
+  const response = await getR2Client().send(new GetObjectCommand({ Bucket: r2BucketName(bucket), Key: key }));
+  if (!response.Body) throw Object.assign(new Error('Stored object could not be read.'), { status: 422, code: 'OBJECT_UNREADABLE' });
+  await pipeline(response.Body as NodeJS.ReadableStream, createWriteStream(filePath));
+}
+
+export async function readObjectStream(key: string, bucket: R2BucketKind = 'media') {
+  const response = await getR2Client().send(new GetObjectCommand({ Bucket: r2BucketName(bucket), Key: key }));
+  if (!response.Body) throw Object.assign(new Error('Stored object could not be read.'), { status: 404, code: 'OBJECT_NOT_FOUND' });
+  return {
+    body: response.Body.transformToWebStream(),
+    contentLength: response.ContentLength,
+    contentType: response.ContentType,
+    etag: response.ETag,
+  };
+}
+
 export async function readObjectBytes(key: string, bucket: R2BucketKind = 'media') {
   const response = await getR2Client().send(new GetObjectCommand({ Bucket: r2BucketName(bucket), Key: key }));
   if (!response.Body) throw Object.assign(new Error('Stored object could not be read.'), { status: 422, code: 'OBJECT_UNREADABLE' });
@@ -97,4 +123,27 @@ export async function listObjectKeys(bucket: R2BucketKind, limit = 10_000) {
     continuationToken = page.IsTruncated && keys.length < limit ? page.NextContinuationToken : undefined;
   } while (continuationToken);
   return { bucket: r2BucketName(bucket), keys, capped: keys.length >= limit };
+}
+
+export async function listObjectKeysByPrefix(prefix: string, bucket: R2BucketKind = 'media', limit = 10_000) {
+  const keys: string[] = [];
+  let continuationToken: string | undefined;
+  do {
+    const page = await getR2Client().send(new ListObjectsV2Command({
+      Bucket: r2BucketName(bucket), Prefix: prefix, ContinuationToken: continuationToken, MaxKeys: Math.min(1_000, limit - keys.length),
+    }));
+    for (const object of page.Contents ?? []) if (object.Key) keys.push(object.Key);
+    continuationToken = page.IsTruncated && keys.length < limit ? page.NextContinuationToken : undefined;
+  } while (continuationToken);
+  return { keys, capped: keys.length >= limit };
+}
+
+export async function deleteObjectPrefix(prefix: string, bucket: R2BucketKind = 'media') {
+  const listed = await listObjectKeysByPrefix(prefix, bucket, 50_000);
+  if (listed.capped) throw Object.assign(new Error('Stream package is too large for one deletion operation.'), { status: 409, code: 'DELETE_LIMIT_REACHED' });
+  for (let offset = 0; offset < listed.keys.length; offset += 1_000) {
+    const keys = listed.keys.slice(offset, offset + 1_000);
+    if (keys.length) await getR2Client().send(new DeleteObjectsCommand({ Bucket: r2BucketName(bucket), Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true } }));
+  }
+  return listed.keys.length;
 }

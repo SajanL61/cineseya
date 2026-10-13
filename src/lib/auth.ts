@@ -9,8 +9,10 @@ import { hashPrivateValue, hashToken, randomToken, safeEqual } from './security'
 import { Session, User } from '@/models';
 import { ROLE_PERMISSIONS, type AuthSession, type AuthUser, type Permission, type Role } from '@/types/auth';
 
-export const SESSION_COOKIE = 'cinerusubs_session';
-export const CSRF_COOKIE = 'cinerusubs_csrf';
+export const SESSION_COOKIE = 'cineseya_session';
+export const CSRF_COOKIE = 'cineseya_csrf';
+const LEGACY_SESSION_COOKIE = 'cinerusubs_session';
+const LEGACY_CSRF_COOKIE = 'cinerusubs_csrf';
 const SESSION_DAYS = 30;
 
 function effectivePermissions(role: Role, explicit: unknown): Permission[] {
@@ -52,18 +54,21 @@ export async function createSession(userId: string, request?: Request) {
 
 export async function deleteSession() {
   const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
+  const token = store.get(SESSION_COOKIE)?.value ?? store.get(LEGACY_SESSION_COOKIE)?.value;
   if (token && !useDemoData) {
     await connectDb();
     await Session.deleteOne({ tokenHash: hashToken(token) });
   }
   store.delete(SESSION_COOKIE);
   store.delete(CSRF_COOKIE);
+  store.delete(LEGACY_SESSION_COOKIE);
+  store.delete(LEGACY_CSRF_COOKIE);
 }
 
 async function readSession(): Promise<AuthSession | null> {
   if (useDemoData) return null;
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value ?? store.get(LEGACY_SESSION_COOKIE)?.value;
   if (!token) return null;
   await connectDb();
   const session = await Session.findOne({ tokenHash: hashToken(token), expiresAt: { $gt: new Date() } }).select('+csrfHash').lean();

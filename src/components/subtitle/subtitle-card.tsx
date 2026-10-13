@@ -1,6 +1,8 @@
 import { BadgeCheck, CalendarDays, Download, FileArchive, Gauge, HardDrive } from 'lucide-react';
 import Link from 'next/link';
 import { SafeImage } from '@/components/ui/safe-image';
+import { ShareButton } from '@/components/movie/share-dialog';
+import { absoluteSiteUrl } from '@/lib/assets';
 import type { SubtitleRecord } from '@/types/content';
 
 function size(bytes: number) {
@@ -15,6 +17,6 @@ export function SubtitleCard({ subtitle, compact = false }: { subtitle: Subtitle
       <div className="release-matches">{subtitle.releaseMatches.map((match) => <span key={match}>{match}</span>)}</div>
       <div className="subtitle-meta"><span><Gauge />{subtitle.fps ?? 'Variable'} FPS</span><span><FileArchive />{subtitle.format.toUpperCase()}</span><span><HardDrive />{size(subtitle.fileSize)}</span><span><CalendarDays />{new Date(subtitle.createdAt).toLocaleDateString('en-LK', { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>
     </div>
-    <div className="subtitle-download"><span><b>{subtitle.downloadCount.toLocaleString()}</b> downloads</span><a href={`/api/subtitles/${subtitle.id}/download`}><Download />Download subtitle</a><small>Version {subtitle.version}</small></div>
+    <div className="subtitle-download"><span><b>{subtitle.downloadCount.toLocaleString()}</b> downloads</span><a href={`/api/subtitles/${subtitle.id}/download`}><Download />Download subtitle</a><ShareButton title={`${subtitle.contentTitle} ${subtitle.language} subtitle`} canonicalUrl={absoluteSiteUrl(subtitle.contentHref ?? `/movies/${subtitle.contentSlug}`)} contentType="subtitle" contentId={subtitle.id}/><small>Version {subtitle.version}</small></div>
   </article>;
 }

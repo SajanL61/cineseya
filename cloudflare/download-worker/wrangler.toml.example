@@ -1,4 +1,4 @@
-name = "cinerusubs-downloads"
+name = "cineseya-downloads"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 
@@ -8,10 +8,10 @@ routes = [
 
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
-bucket_name = "cinerusubs-media"
+bucket_name = "cineseya-media"
 
 [vars]
-MEDIA_BUCKET_NAME = "cinerusubs-media"
+MEDIA_BUCKET_NAME = "cineseya-media"
 
 # Set without committing it:
 # wrangler secret put DOWNLOAD_SIGNING_SECRET

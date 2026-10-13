@@ -2,6 +2,7 @@
 
 import { CheckCircle2, CloudCog, LoaderCircle, XCircle } from 'lucide-react';
 import { useState } from 'react';
+import { readCsrfToken } from '@/lib/client/browser-brand';
 import { uploadApiFetch as fetch } from '@/lib/client/upload-json';
 
 type DiagnosticResult = {
@@ -14,7 +15,7 @@ type DiagnosticResult = {
   error?: string;
 };
 
-const csrf = () => decodeURIComponent(document.cookie.split('; ').find((entry) => entry.startsWith('cinerusubs_csrf='))?.split('=').slice(1).join('=') || '');
+const csrf = readCsrfToken;
 
 function Check({ label, passed }: { label: string; passed: boolean }) {
   return <span className={passed ? 'passed' : 'failed'}>{passed ? <CheckCircle2/> : <XCircle/>}{label}</span>;

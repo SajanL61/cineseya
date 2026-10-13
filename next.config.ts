@@ -9,8 +9,9 @@ const configuredUrl = (name: string) => {
 };
 const assetUrl = configuredUrl('PUBLIC_ASSET_DOMAIN');
 const downloadUrl = configuredUrl('DOWNLOAD_DOMAIN');
+const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 const imageSources = ["'self'", 'data:', 'blob:', 'https://image.tmdb.org', assetUrl?.origin].filter(Boolean).join(' ');
-const connectSources = ["'self'", 'https://*.r2.cloudflarestorage.com', downloadUrl?.origin].filter(Boolean).join(' ');
+const connectSources = ["'self'", 'https://*.r2.cloudflarestorage.com', downloadUrl?.origin, turnstileEnabled ? 'https://challenges.cloudflare.com' : undefined].filter(Boolean).join(' ');
 const mediaSources = ["'self'", 'blob:', 'https://*.r2.cloudflarestorage.com', downloadUrl?.origin].filter(Boolean).join(' ');
 
 const securityHeaders = [
@@ -24,13 +25,13 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}${turnstileEnabled ? ' https://challenges.cloudflare.com' : ''}`,
       "style-src 'self' 'unsafe-inline'",
       `img-src ${imageSources}`,
       "font-src 'self' data:",
       `connect-src ${connectSources}`,
       `media-src ${mediaSources}`,
-      "frame-src https://www.youtube-nocookie.com",
+      `frame-src https://www.youtube-nocookie.com${turnstileEnabled ? ' https://challenges.cloudflare.com' : ''}`,
       "worker-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",

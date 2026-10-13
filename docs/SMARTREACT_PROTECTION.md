@@ -1,10 +1,10 @@
 # SmartReact database protection
 
-CineruSubs must access only the MongoDB database named exactly `cinerusubs`. `SmartReact` is a protected, unrelated database and must never be read, written, renamed, dropped, migrated, or reused.
+CineSeya must access only the MongoDB database named exactly `cinerusubs`. `SmartReact` is a protected, unrelated database and must never be read, written, renamed, dropped, migrated, or reused.
 
 ## Atlas role
 
-Create a dedicated CineruSubs database user with exactly one built-in role:
+Create a dedicated CineSeya database user with exactly one built-in role:
 
 ```text
 Role: readWrite
@@ -21,7 +21,7 @@ Startup configuration rejects any `MONGODB_DB` except `cinerusubs`. After Mongoo
 
 Run these checks with the deployed application identity from an approved administration host and retain redacted, timestamped output:
 
-1. Connect with the dedicated CineruSubs application URI and run `db.getName()`; it must return `cinerusubs`.
+1. Connect with the dedicated CineSeya application URI and run `db.getName()`; it must return `cinerusubs`.
 2. In `cinerusubs`, create and remove a uniquely named disposable proof document in a disposable proof collection; both operations must succeed.
 3. Switch the same authenticated connection to `SmartReact` and attempt `findOne` and an insert against a uniquely named disposable proof collection. Both must fail with an authorization error. Do not target an existing collection and do not broaden privileges to make this check work.
 4. Export or screenshot the Atlas database-user role showing only `readWrite@cinerusubs`.

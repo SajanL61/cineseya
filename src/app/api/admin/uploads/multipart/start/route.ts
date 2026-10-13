@@ -19,10 +19,10 @@ export async function POST(request: Request) {
       objectKey, bucket: r2BucketName('media'), kind: 'media', fileName: safeInput.fileName,
       mimeType: safeInput.contentType, size: safeInput.size, checksum: safeInput.checksum, status: 'pending',
       linkedModel: safeInput.linkedModel, linkedId: safeInput.linkedId, uploadedBy: session.user.id,
-      metadata: { requestedAt: new Date(), multipart: true, bucketKind: 'media' },
+      metadata: { requestedAt: new Date(), multipart: true, bucketKind: 'media', purpose: safeInput.purpose },
     });
     try {
-      const uploadId = await createMultipartObject(objectKey, safeInput.contentType, { assetid: String(asset._id), uploader: session.user.id }, 'media');
+      const uploadId = await createMultipartObject(objectKey, safeInput.contentType, { assetid: String(asset._id), uploader: session.user.id, purpose: safeInput.purpose }, 'media');
       asset.metadata = { ...(asset.metadata as Record<string, unknown>), uploadId };
       await asset.save();
       await AuditLog.create({ actor: session.user.id, action: 'media.multipart.start', entity: 'MediaAsset', entityId: String(asset._id), metadata: { objectKey, size: safeInput.size, bucket: asset.bucket } });

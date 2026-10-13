@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { DownloadPreparation } from '@/components/movie/download-preparation';
+import { SecureDownloadVerification as DownloadPreparation } from '@/components/movie/secure-download-verification';
 import { getDownloadPageData } from '@/services/downloads';
 import { SafeImage } from '@/components/ui/safe-image';
 

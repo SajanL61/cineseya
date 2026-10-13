@@ -6,6 +6,7 @@ import { Episode, MediaVersion, Movie, Season, Series, Subtitle, TranslatorProfi
 import { demoMovies, demoSeries, demoSubtitles, demoTranslators } from '@/data/demo';
 import type { DiscoverFilters, MovieRecord, SeriesRecord, SubtitleRecord, TranslatorRecord } from '@/types/content';
 import { getPublicMediaVersions } from '@/services/downloads';
+import { rankSearchCandidates, searchMatchScore } from '@/lib/search';
 
 const normalize = (value: string) => value.normalize('NFKC').trim().toLocaleLowerCase();
 const fullMediaRights = ['owned', 'licensed', 'public_domain'];
@@ -15,9 +16,11 @@ const referenceId = (value: unknown) => String(asDocument(value)?._id ?? value ?
 function filterMovies(items: MovieRecord[], filters: DiscoverFilters = {}) {
   let result = [...items];
   if (filters.q) {
-    const q = normalize(filters.q);
-    result = result.filter((movie) => [movie.title, movie.originalTitle, movie.sinhalaTitle, movie.overview, ...movie.genres, ...movie.languages]
-      .filter(Boolean).some((value) => normalize(String(value)).includes(q)));
+    result = rankSearchCandidates(filters.q, result.map((movie) => ({ item: movie, values: [
+      movie.title, movie.originalTitle, movie.sinhalaTitle, ...(movie.alternativeTitles ?? []), ...(movie.searchAliases ?? []),
+      movie.director, ...movie.cast.flatMap((credit) => [credit.name, credit.character]), ...movie.crew.flatMap((credit) => [credit.name, credit.role]),
+      ...movie.genres, ...movie.languages, ...movie.countries, movie.year,
+    ] })));
   }
   if (filters.genre) result = result.filter((movie) => movie.genres.some((genre) => normalize(genre) === normalize(filters.genre!)));
   if (filters.language) result = result.filter((movie) => movie.languages.some((language) => normalize(language) === normalize(filters.language!)));
@@ -26,6 +29,7 @@ function filterMovies(items: MovieRecord[], filters: DiscoverFilters = {}) {
   if (filters.rating) result = result.filter((movie) => (movie.imdbRating ?? movie.tmdbRating ?? 0) >= Number(filters.rating));
   if (filters.quality) result = result.filter((movie) => movie.qualities.some((quality) => normalize(quality).includes(normalize(filters.quality!))));
   if (filters.subtitleLanguage) result = result.filter((movie) => movie.subtitleLanguages.some((language) => normalize(language) === normalize(filters.subtitleLanguage!)));
+  if (filters.q && !filters.sort) return result;
   const sort = filters.sort ?? 'trending';
   result.sort((a, b) => sort === 'newest' ? b.year - a.year
     : sort === 'rating' ? (b.imdbRating ?? b.tmdbRating ?? 0) - (a.imdbRating ?? a.tmdbRating ?? 0)
@@ -39,7 +43,9 @@ function toMovieRecord(document: Record<string, unknown>): MovieRecord {
   const releaseDate = document.releaseDate ? new Date(document.releaseDate as string).toISOString().slice(0, 10) : `${document.year}-01-01`;
   return {
     id: String(document._id), title: String(document.title), originalTitle: document.originalTitle ? String(document.originalTitle) : undefined,
-    sinhalaTitle: document.sinhalaTitle ? String(document.sinhalaTitle) : undefined, slug: String(document.slug), overview: String(document.overview),
+    sinhalaTitle: document.sinhalaTitle ? String(document.sinhalaTitle) : undefined,
+    alternativeTitles: (document.alternativeTitles as string[] | undefined) ?? [], searchAliases: (document.searchAliases as string[] | undefined) ?? [],
+    slug: String(document.slug), overview: String(document.overview),
     year: Number(document.year), releaseDate, runtime: Number(document.runtime ?? 0), ageRating: String(document.ageRating ?? 'NR'),
     genres: (document.genres as string[] | undefined) ?? [], languages: (document.languages as string[] | undefined) ?? [], countries: (document.countries as string[] | undefined) ?? [],
     releaseType: document.releaseType ? String(document.releaseType) : undefined, videoQuality: document.videoQuality ? String(document.videoQuality) : undefined,
@@ -47,7 +53,8 @@ function toMovieRecord(document: Record<string, unknown>): MovieRecord {
     trailerUrl: document.trailerUrl ? String(document.trailerUrl) : undefined, imdbId: document.imdbId ? String(document.imdbId) : undefined,
     tmdbId: document.tmdbId ? String(document.tmdbId) : undefined, imdbRating: document.imdbRating ? Number(document.imdbRating) : undefined,
     tmdbRating: document.tmdbRating ? Number(document.tmdbRating) : undefined, cast: (document.cast as MovieRecord['cast'] | undefined) ?? [],
-    crew: (document.crew as MovieRecord['crew'] | undefined) ?? [], rightsStatus: document.rightsStatus as MovieRecord['rightsStatus'],
+    crew: (document.crew as MovieRecord['crew'] | undefined) ?? [], director: document.director ? String(document.director) : undefined,
+    rightsStatus: document.rightsStatus as MovieRecord['rightsStatus'],
     featured: Boolean(document.featured), trending: Boolean(document.trending), editorPick: Boolean(document.editorPick), viewCount: Number(document.viewCount ?? 0),
     subtitleDownloadCount: Number(document.subtitleDownloadCount ?? 0), publicationStatus: document.publicationStatus as MovieRecord['publicationStatus'],
     qualities: [], subtitleLanguages: [], releaseStatus: String(document.releaseStatus ?? 'Released'),
@@ -96,8 +103,7 @@ export async function getMovies(filters: DiscoverFilters = {}) {
   if (filters.language) query.languages = filters.language;
   if (filters.country) query.countries = filters.country;
   if (filters.year) query.year = Number(filters.year);
-  if (filters.q) query.$text = { $search: filters.q.replace(/[{}$]/g, '') };
-  const rows = await Movie.find(query).sort({ trending: -1, publishedAt: -1 }).limit(96).lean();
+  const rows = await Movie.find(query).sort({ trending: -1, viewCount: -1, publishedAt: -1 }).limit(filters.q ? 500 : 96).lean();
   return filterMovies(await enrichMovieRecords(rows as Record<string, unknown>[]), filters);
 }
 
@@ -130,9 +136,12 @@ export async function getSeries(): Promise<SeriesRecord[]> {
     }));
     return {
       id: String(row._id), title: String(row.title), originalTitle: row.originalTitle ? String(row.originalTitle) : undefined,
-      sinhalaTitle: row.sinhalaTitle ? String(row.sinhalaTitle) : undefined, slug: String(row.slug), overview: String(row.overview), year: Number(row.year),
+      sinhalaTitle: row.sinhalaTitle ? String(row.sinhalaTitle) : undefined,
+      alternativeTitles: (row.alternativeTitles as string[] | undefined) ?? [], searchAliases: (row.searchAliases as string[] | undefined) ?? [],
+      slug: String(row.slug), overview: String(row.overview), year: Number(row.year),
       ageRating: String(row.ageRating ?? 'NR'), genres: (row.genres as string[] | undefined) ?? [], languages: (row.languages as string[] | undefined) ?? [],
-      countries: (row.countries as string[] | undefined) ?? [], posterUrl: resolvePublicAssetUrl(row.posterUrl, '/media/fallback-poster.svg')!, backdropUrl: resolvePublicAssetUrl(row.backdropUrl, '/media/fallback-backdrop.svg')!,
+      countries: (row.countries as string[] | undefined) ?? [], cast: (row.cast as SeriesRecord['cast'] | undefined) ?? [], crew: (row.crew as SeriesRecord['crew'] | undefined) ?? [],
+      posterUrl: resolvePublicAssetUrl(row.posterUrl, '/media/fallback-poster.svg')!, backdropUrl: resolvePublicAssetUrl(row.backdropUrl, '/media/fallback-backdrop.svg')!,
       imdbRating: row.imdbRating ? Number(row.imdbRating) : undefined, tmdbRating: row.tmdbRating ? Number(row.tmdbRating) : undefined,
       status: String(row.status ?? 'Unknown'), rightsStatus: row.rightsStatus as SeriesRecord['rightsStatus'], seasons, featured: Boolean(row.featured), trending: Boolean(row.trending),
     } satisfies SeriesRecord;
@@ -141,6 +150,15 @@ export async function getSeries(): Promise<SeriesRecord[]> {
 
 export async function getSeriesBySlug(slug: string) {
   return (await getSeries()).find((series) => series.slug === slug) ?? null;
+}
+
+export async function searchSeries(query: string) {
+  const series = await getSeries();
+  return rankSearchCandidates(query, series.map((item) => ({ item, values: [
+    item.title, item.originalTitle, item.sinhalaTitle, ...(item.alternativeTitles ?? []), ...(item.searchAliases ?? []),
+    ...item.genres, ...item.languages, ...item.countries, item.year,
+    ...(item.cast ?? []).flatMap((credit) => [credit.name, credit.character]), ...(item.crew ?? []).flatMap((credit) => [credit.name, credit.role]),
+  ] })));
 }
 
 export async function getSubtitles(languageCode?: string): Promise<SubtitleRecord[]> {
@@ -199,7 +217,7 @@ export async function getTranslatorSubtitles(translatorId: string) {
   return (await getSubtitles()).filter((subtitle) => subtitle.translatorId === translatorId);
 }
 
-export async function getSearchSuggestions(query: string) {
+async function getBasicSearchSuggestions(query: string) {
   const q = normalize(query);
   if (q.length < 2) return [];
   const [movies, series, subtitles] = await Promise.all([getMovies({ q }), getSeries(), getSubtitles()]);
@@ -209,6 +227,35 @@ export async function getSearchSuggestions(query: string) {
   const translatorItems = translatorRows.filter((item) => normalize(String(item.displayName)).includes(q)).slice(0, 3).map((item) => ({ type: 'translator', title: String(item.displayName), subtitle: 'Subtitle translator', slug: String(item.slug), image: resolvePublicAssetUrl(item.avatarUrl) }));
   const subtitleItems = subtitles.filter((item) => normalize(item.contentTitle).includes(q)).slice(0, 3).map((item) => ({ type: 'subtitle', title: `${item.contentTitle} · ${item.language}`, subtitle: `${item.format.toUpperCase()} · ${item.downloadCount.toLocaleString()} downloads`, slug: item.contentSlug, href: `${item.contentHref ?? `/movies/${item.contentSlug}`}#subtitles`, image: item.contentPosterUrl }));
   return [...movieItems, ...seriesItems, ...translatorItems, ...subtitleItems].slice(0, 10);
+}
+
+export async function getSearchSuggestions(query: string) {
+  const q = normalize(query);
+  if (q.length < 2) return [];
+  const [movies, series, subtitles, translatorRows] = await Promise.all([
+    getMovies({ q }), getSeries(), getSubtitles(),
+    useDemoData ? Promise.resolve(demoTranslators) : TranslatorProfile.find().select('displayName slug avatarUrl').sort({ totalDownloads: -1 }).limit(100).lean(),
+  ]);
+  const movieItems = movies.slice(0, 6).map((movie) => ({ type: 'movie', title: movie.title, subtitle: `${movie.year} · ${movie.genres[0] ?? 'Movie'}`, slug: movie.slug, image: movie.posterUrl }));
+  const matchedSeries = rankSearchCandidates(query, series.map((item) => ({ item, values: [
+    item.title, item.originalTitle, item.sinhalaTitle, ...(item.alternativeTitles ?? []), ...(item.searchAliases ?? []),
+    ...item.genres, ...item.languages, ...item.countries, item.year,
+    ...(item.cast ?? []).flatMap((credit) => [credit.name, credit.character]), ...(item.crew ?? []).flatMap((credit) => [credit.name, credit.role]),
+  ] })));
+  const seriesItems = matchedSeries.slice(0, 4).map((item) => ({ type: 'series', title: item.title, subtitle: `${item.year} · TV Series`, slug: item.slug, image: item.posterUrl }));
+  const matchedTranslators = rankSearchCandidates(query, translatorRows.map((item) => ({ item, values: [String(item.displayName ?? ''), String(item.slug ?? '')] })));
+  const translatorItems = matchedTranslators.slice(0, 3).map((item) => ({ type: 'translator', title: String(item.displayName), subtitle: 'Subtitle translator', slug: String(item.slug), image: resolvePublicAssetUrl(item.avatarUrl) }));
+  const matchedSubtitles = [...subtitles].map((item) => ({ item, score: searchMatchScore(query, [item.contentTitle, item.language, item.translatorName]) })).filter(({ score }) => score > 0).sort((left, right) => right.score - left.score).map(({ item }) => item);
+  const subtitleItems = matchedSubtitles.slice(0, 3).map((item) => ({ type: 'subtitle', title: `${item.contentTitle} · ${item.language}`, subtitle: `${item.format.toUpperCase()} · ${item.downloadCount.toLocaleString()} downloads`, slug: item.contentSlug, href: `${item.contentHref ?? `/movies/${item.contentSlug}`}#subtitles`, image: item.contentPosterUrl }));
+  const people = new Map<string, { type: string; title: string; subtitle: string; slug: string }>();
+  for (const movie of movies.slice(0, 20)) for (const credit of [...movie.cast, ...movie.crew]) {
+    if (!people.has(credit.slug) && searchMatchScore(query, [credit.name, credit.character, credit.role]) > 0) people.set(credit.slug, { type: 'person', title: credit.name, subtitle: credit.character || credit.role || 'Cast & crew', slug: credit.slug });
+  }
+  for (const item of matchedSeries.slice(0, 10)) for (const credit of [...(item.cast ?? []), ...(item.crew ?? [])]) {
+    if (!people.has(credit.slug) && searchMatchScore(query, [credit.name, credit.character, credit.role]) > 0) people.set(credit.slug, { type: 'person', title: credit.name, subtitle: credit.character || credit.role || 'Cast & crew', slug: credit.slug });
+  }
+  const items = [...movieItems, ...seriesItems, ...people.values(), ...translatorItems, ...subtitleItems].slice(0, 12);
+  return items.length ? items : getBasicSearchSuggestions(query);
 }
 
 export async function getActiveMediaVersions(contentId: string, contentType: 'movie' | 'episode') {

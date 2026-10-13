@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const input = schema.parse(await request.json());
     await connectDb();
     const user = await User.findOne({ email: input.email }).select('+passwordHash');
-    const passwordHash = user?.passwordHash ? String(user.passwordHash) : await hashPassword('cinerusubs-invalid-login-placeholder');
+    const passwordHash = user?.passwordHash ? String(user.passwordHash) : await hashPassword('cineseya-invalid-login-placeholder');
     const valid = await verifyPassword(passwordHash, input.password);
     if (!user || !valid || !user.active) throw Object.assign(new Error('The email or password is incorrect.'), { status: 401, code: 'INVALID_CREDENTIALS' });
     user.lastLoginAt = new Date();

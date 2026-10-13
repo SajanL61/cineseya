@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { z } from 'zod';
 import { connectDb } from '../src/lib/db';
 import argon2 from 'argon2';
-import { AuditLog, ensureCineruIndexes, User } from '../src/models/index';
+import { AuditLog, ensureCineSeyaIndexes, User } from '../src/models/index';
 
 const input = z.object({
   name: z.string().trim().min(2).max(120),
@@ -12,7 +12,7 @@ const input = z.object({
 
 try {
   await connectDb();
-  await ensureCineruIndexes();
+  await ensureCineSeyaIndexes();
   const existing = await User.findOne({ email: input.email }).select('+passwordHash');
   const passwordHash = await argon2.hash(input.password, {
     type: argon2.argon2id,

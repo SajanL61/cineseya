@@ -15,12 +15,12 @@ async function main() {
   try {
     await movies.insertOne({
       _id: testId,
-      title: 'CineruSubs Database Test',
+      title: 'CineSeya Database Test',
       publicationStatus: 'draft',
     });
     const saved = await movies.findOne({
       _id: testId,
-      title: 'CineruSubs Database Test',
+      title: 'CineSeya Database Test',
       publicationStatus: 'draft',
     });
     if (!saved) throw new Error('Temporary database record could not be read back.');

@@ -57,6 +57,11 @@ export function TrendingHeroCarousel({ movies }: { movies: MovieRecord[] }) {
     setCurrent(index);
   };
 
+  const togglePaused = () => {
+    if (paused) setFocused(false);
+    setPaused((value) => !value);
+  };
+
   return (
     <section
       className="home-hero hero-carousel"
@@ -113,7 +118,7 @@ export function TrendingHeroCarousel({ movies }: { movies: MovieRecord[] }) {
           {movies.map((item, index) => <button type="button" className={index === current ? 'active' : ''} aria-label={`Show ${item.title}`} aria-current={index === current ? 'true' : undefined} onClick={() => select(index)} key={item.id}/>) }
         </div>
         <button type="button" onClick={() => move(1)} aria-label="Show next trending movie"><ChevronRight/></button>
-        <button type="button" className="hero-carousel-pause" disabled={reducedMotion} aria-label={reducedMotion ? 'Automatic rotation disabled by reduced motion preference' : paused ? 'Resume automatic rotation' : 'Pause automatic rotation'} aria-pressed={paused} onClick={() => setPaused((value) => !value)}>{paused || reducedMotion ? <Play/> : <Pause/>}</button>
+        <button type="button" className="hero-carousel-pause" disabled={reducedMotion} aria-label={reducedMotion ? 'Automatic rotation disabled by reduced motion preference' : paused ? 'Resume automatic rotation' : 'Pause automatic rotation'} aria-pressed={paused} onClick={togglePaused}>{paused || reducedMotion ? <Play/> : <Pause/>}</button>
       </div>}
     </section>
   );

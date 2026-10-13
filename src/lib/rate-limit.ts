@@ -5,9 +5,9 @@ import { env, useDemoData } from './env';
 import { RateLimitEvent } from '@/models';
 
 type MemoryEntry = { count: number; resetsAt: number };
-const globalRateLimits = globalThis as typeof globalThis & { __cineruRateLimits?: Map<string, MemoryEntry> };
-const memory = globalRateLimits.__cineruRateLimits ?? new Map<string, MemoryEntry>();
-globalRateLimits.__cineruRateLimits = memory;
+const globalRateLimits = globalThis as typeof globalThis & { __cineseyaRateLimits?: Map<string, MemoryEntry> };
+const memory = globalRateLimits.__cineseyaRateLimits ?? new Map<string, MemoryEntry>();
+globalRateLimits.__cineseyaRateLimits = memory;
 
 const hash = (value: string) => createHash('sha256').update(`${env.DOWNLOAD_SIGNING_SECRET}:${value}`).digest('hex');
 

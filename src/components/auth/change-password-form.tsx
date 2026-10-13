@@ -2,10 +2,7 @@
 
 import { Eye, EyeOff, KeyRound, LoaderCircle, LockKeyhole } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-
-function csrfCookie() {
-  return decodeURIComponent(document.cookie.split('; ').find((entry) => entry.startsWith('cinerusubs_csrf='))?.split('=').slice(1).join('=') || '');
-}
+import { readCsrfToken } from '@/lib/client/browser-brand';
 
 function responseMessage(result: { error?: { message?: string; fields?: Record<string, string[]> } }) {
   const fieldMessage = result.error?.fields && Object.values(result.error.fields).flat().find(Boolean);
@@ -28,7 +25,7 @@ export function ChangePasswordForm() {
     try {
       const response = await fetch('/api/auth/password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfCookie() },
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': readCsrfToken() },
         body: JSON.stringify({
           currentPassword: String(form.get('currentPassword') || ''),
           newPassword: String(form.get('newPassword') || ''),
