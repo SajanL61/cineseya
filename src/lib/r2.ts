@@ -77,8 +77,8 @@ export async function inspectObject(key: string, bucket: R2BucketKind = 'media')
   return getR2Client().send(new HeadObjectCommand({ Bucket: r2BucketName(bucket), Key: key }));
 }
 
-export async function writeObjectBytes(key: string, bytes: Uint8Array, contentType: string, bucket: R2BucketKind) {
-  await getR2Client().send(new PutObjectCommand({ Bucket: r2BucketName(bucket), Key: key, Body: bytes, ContentType: contentType }));
+export async function writeObjectBytes(key: string, bytes: Uint8Array, contentType: string, bucket: R2BucketKind, metadata?: Record<string, string>) {
+  return getR2Client().send(new PutObjectCommand({ Bucket: r2BucketName(bucket), Key: key, Body: bytes, ContentType: contentType, Metadata: metadata }));
 }
 
 export async function uploadObjectFile(key: string, filePath: string, contentType: string, bucket: R2BucketKind = 'media') {
