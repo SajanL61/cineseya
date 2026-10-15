@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ROLE_PERMISSIONS } from '../src/types/auth';
+import { canPublishSubtitle, ROLE_PERMISSIONS } from '../src/types/auth';
 
 describe('role permissions', () => {
   it('keeps public users outside the admin boundary', () => {
@@ -19,5 +19,13 @@ describe('role permissions', () => {
     expect(ROLE_PERMISSIONS.admin).not.toContain('users.roles');
     expect(ROLE_PERMISSIONS.moderator).toContain('moderation.update');
     expect(ROLE_PERMISSIONS.moderator).not.toContain('settings.update');
+  });
+
+  it('shows subtitle publishing only when update and verification permissions are both present', () => {
+    expect(canPublishSubtitle(ROLE_PERMISSIONS.admin)).toBe(true);
+    expect(canPublishSubtitle(ROLE_PERMISSIONS.editor)).toBe(false);
+    expect(canPublishSubtitle(['subtitles.update'])).toBe(false);
+    expect(canPublishSubtitle(['subtitles.verify'])).toBe(false);
+    expect(canPublishSubtitle(['subtitles.update', 'subtitles.verify'])).toBe(true);
   });
 });

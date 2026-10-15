@@ -3,7 +3,7 @@ import type { Model } from 'mongoose';
 import { connectDb } from '@/lib/db';
 import { env } from '@/lib/env';
 import {
-  AnalyticsEvent, AuditLog, Comment, ContactMessage, DownloadEvent, DownloadMirror, Genre, HomepageSection, Language, MediaAsset, MediaStream, MediaVersion, Movie, Report,
+  AnalyticsEvent, AuditLog, Comment, ContactMessage, DownloadEvent, DownloadMirror, Episode, Genre, HomepageSection, Language, MediaAsset, MediaStream, MediaVersion, Movie, Report,
   SearchEvent, Series, SiteSetting, Subtitle, SubtitleRequest, TakedownRequest, TranslatorProfile, User,
 } from '@/models';
 
@@ -13,7 +13,7 @@ type ResourceDefinition = { model: Model<Record<string, unknown>>; searchField: 
 const resources: Record<ResourceKey, ResourceDefinition> = {
   movies: { model: Movie, searchField: 'title', select: 'title slug year publicationStatus rightsStatus updatedAt', titleField: 'title', secondaryField: 'slug' },
   series: { model: Series, searchField: 'title', select: 'title slug year publicationStatus rightsStatus updatedAt', titleField: 'title', secondaryField: 'slug' },
-  subtitles: { model: Subtitle, searchField: 'fileName', select: 'fileName language format status verified downloadCount updatedAt', titleField: 'fileName', secondaryField: 'language' },
+  subtitles: { model: Subtitle, searchField: 'fileName', select: 'fileName language format status verified downloadCount movie episode updatedAt', titleField: 'fileName', secondaryField: 'language' },
   translators: { model: TranslatorProfile, searchField: 'displayName', select: 'displayName slug verified totalSubtitles totalDownloads updatedAt', titleField: 'displayName', secondaryField: 'slug' },
   users: { model: User, searchField: 'email', select: 'name displayName email role active lastLoginAt updatedAt', titleField: 'displayName', secondaryField: 'email' },
   comments: { model: Comment, searchField: 'body', select: 'body targetType status likeCount createdAt updatedAt', titleField: 'body', secondaryField: 'targetType' },
@@ -41,6 +41,22 @@ export async function getAdminCollection(resource: ResourceKey, query = '', page
   if (resource === 'taxonomies') {
     const languages = await Language.find(filter).select(definition.select).sort({ displayOrder: 1, name: 1 }).limit(30).lean();
     items.push(...languages.map((item) => ({ ...(item as unknown as Record<string, unknown>), taxonomyType: 'Language' })));
+  }
+  if (resource === 'subtitles') {
+    const movieIds = items.map((item) => item.movie).filter(Boolean);
+    const episodeIds = items.map((item) => item.episode).filter(Boolean);
+    const [movies, episodes] = await Promise.all([
+      movieIds.length ? Movie.find({ _id: { $in: movieIds } }).select('title').lean() : [],
+      episodeIds.length ? Episode.find({ _id: { $in: episodeIds } }).select('title').lean() : [],
+    ]);
+    const movieTitles = new Map(movies.map((movie) => [String(movie._id), String(movie.title)]));
+    const episodeTitles = new Map(episodes.map((episode) => [String(episode._id), String(episode.title)]));
+    for (const item of items) {
+      const movieId = item.movie ? String(item.movie) : '';
+      const episodeId = item.episode ? String(item.episode) : '';
+      item.contentTitle = movieTitles.get(movieId) ?? episodeTitles.get(episodeId) ?? 'Unknown linked content';
+      item.contentType = movieId ? 'movie' : 'episode';
+    }
   }
   return { items: items.map((item) => JSON.parse(JSON.stringify(item)) as Record<string, unknown>), total, titleField: definition.titleField, secondaryField: definition.secondaryField };
 }

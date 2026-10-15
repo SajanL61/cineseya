@@ -14,6 +14,10 @@ export const PERMISSIONS = [
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
+export function canPublishSubtitle(permissions: readonly Permission[]) {
+  return permissions.includes('subtitles.update') && permissions.includes('subtitles.verify');
+}
+
 const allPermissions = [...PERMISSIONS];
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   super_admin: allPermissions,
