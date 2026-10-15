@@ -65,6 +65,31 @@ const nextConfig: NextConfig = {
       { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }] },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          { type: 'host', value: 'cineseya.lk' },
+          { type: 'header', key: 'x-forwarded-proto', value: 'http' },
+        ],
+        destination: 'https://cineseya.lk/:path*',
+        permanent: true,
+      },
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.cineseya.lk' }],
+        destination: 'https://cineseya.lk/:path*',
+        permanent: true,
+      },
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'cinerusubs.onrender.com' }],
+        destination: 'https://cineseya.lk/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

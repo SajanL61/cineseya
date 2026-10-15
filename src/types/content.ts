@@ -2,6 +2,12 @@ export const RIGHTS_STATUSES = ['subtitle_only', 'owned', 'licensed', 'public_do
 export type RightsStatus = (typeof RIGHTS_STATUSES)[number];
 export type PublicationStatus = 'draft' | 'scheduled' | 'published' | 'archived';
 export type FocalPoint = { x: number; y: number };
+export type SeoFields = {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  noindex?: boolean;
+};
 
 export type PersonCredit = {
   name: string;
@@ -50,6 +56,9 @@ export type MovieRecord = {
   qualities: string[];
   subtitleLanguages: string[];
   releaseStatus: string;
+  seo?: SeoFields;
+  publishedAt?: string;
+  updatedAt?: string;
 };
 
 export type EpisodeRecord = {
@@ -64,6 +73,7 @@ export type EpisodeRecord = {
   thumbnailUrl: string;
   subtitleLanguages: string[];
   rightsStatus: RightsStatus;
+  updatedAt?: string;
 };
 
 export type SeasonRecord = {
@@ -100,6 +110,11 @@ export type SeriesRecord = {
   seasons: SeasonRecord[];
   featured: boolean;
   trending: boolean;
+  trailerUrl?: string;
+  imdbId?: string;
+  tmdbId?: string;
+  publishedAt?: string;
+  updatedAt?: string;
 };
 
 export type SubtitleRecord = {
@@ -143,6 +158,7 @@ export type TranslatorRecord = {
   totalSubtitles: number;
   totalDownloads: number;
   averageRating: number;
+  updatedAt?: string;
 };
 
 export type DiscoverFilters = {

@@ -10,7 +10,6 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SubtitleCard } from "@/components/subtitle/subtitle-card";
-import { siteUrl } from "@/lib/env";
 import { mayDistributeFullMedia, rightsLabel } from "@/lib/rights";
 import {
   getActiveMediaVersions,
@@ -18,12 +17,18 @@ import {
   getSubtitlesForEpisode,
 } from "@/services/catalog";
 import { CineBackdrop } from "@/components/ui/cine-artwork";
-import { absoluteSiteUrl } from "@/lib/assets";
 import { currentUser } from "@/lib/auth";
 import { SubtitleInterest } from "@/components/subtitle/subtitle-interest";
 import { getSubtitleInterest } from "@/services/subtitle-interest";
 import { getReadyStreamForContent } from "@/services/media";
 import { NonceJsonLd } from "@/components/seo/nonce-json-ld";
+import {
+  breadcrumbJsonLd,
+  canonicalUrl,
+  conciseDescription,
+  hasSinhalaSubtitle,
+  publicSeoImage,
+} from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 const segmentNumber = (value: string, prefix: string) =>
@@ -40,20 +45,19 @@ export async function generateMetadata({
     ?.episodes.find(
       (x) => x.episodeNumber === segmentNumber(p.episode, "episode"),
     );
-  return e && s
-    ? {
-        title: `${s.title}: ${e.title}`,
-        description: e.overview,
-        alternates: {
-          canonical: `/tv/${s.slug}/season-${e.seasonNumber}/episode-${e.episodeNumber}`,
-        },
-        openGraph: {
-          title: `${s.title}: ${e.title}`,
-          description: e.overview,
-          images: [e.thumbnailUrl],
-        },
-      }
-    : {};
+  if (!e || !s) return {};
+  const route = `/tv/${s.slug}/season-${e.seasonNumber}/episode-${e.episodeNumber}`;
+  const sinhalaAvailable = hasSinhalaSubtitle(e.subtitleLanguages);
+  const title = `${s.title} S${e.seasonNumber} E${e.episodeNumber}: ${e.title}${sinhalaAvailable ? ' Sinhala Subtitles' : ''}`;
+  const description = conciseDescription(`${s.title} season ${e.seasonNumber}, episode ${e.episodeNumber}: ${e.title}${sinhalaAvailable ? ' with published Sinhala subtitles' : ''}. ${e.overview}`, `Episode details for ${s.title}: ${e.title} on CineSeya.`);
+  const image = publicSeoImage(e.thumbnailUrl, publicSeoImage(s.backdropUrl));
+  return {
+    title,
+    description,
+    alternates: { canonical: route },
+    openGraph: { type: 'video.episode', siteName: 'CineSeya', title, description, url: canonicalUrl(route), images: [{ url: image, alt: `${s.title}: ${e.title}` }] },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
+  };
 }
 export default async function EpisodePage({
   params,
@@ -92,14 +96,19 @@ export default async function EpisodePage({
     mayDistributeFullMedia(episode.rightsStatus) && versions.length > 0;
   const streamable =
     mayDistributeFullMedia(episode.rightsStatus) && Boolean(stream);
+  const route = `/tv/${series.slug}/season-${episode.seasonNumber}/episode-${episode.episodeNumber}`;
   const schema = {
     "@context": "https://schema.org",
     "@type": "TVEpisode",
+    "@id": `${canonicalUrl(route)}#episode`,
+    url: canonicalUrl(route),
     name: episode.title,
     description: episode.overview,
     episodeNumber: episode.episodeNumber,
-    datePublished: episode.releaseDate,
-    image: absoluteSiteUrl(episode.thumbnailUrl),
+    datePublished: episode.releaseDate || undefined,
+    duration: episode.runtime > 0 ? `PT${episode.runtime}M` : undefined,
+    image: publicSeoImage(episode.thumbnailUrl),
+    inLanguage: series.languages,
     partOfSeason: {
       "@type": "TVSeason",
       seasonNumber: season.seasonNumber,
@@ -108,14 +117,21 @@ export default async function EpisodePage({
     partOfSeries: {
       "@type": "TVSeries",
       name: series.title,
-      url: `${siteUrl}/tv/${series.slug}`,
+      url: canonicalUrl(`/tv/${series.slug}`),
     },
   };
+  const breadcrumb = breadcrumbJsonLd([
+    { name: 'Home', path: '/' },
+    { name: 'TV Series', path: '/tv' },
+    { name: series.title, path: `/tv/${series.slug}` },
+    { name: `Season ${season.seasonNumber}, Episode ${episode.episodeNumber}`, path: route },
+  ]);
   const episodeHref = (item: typeof episode) =>
     `/tv/${series.slug}/season-${item.seasonNumber}/episode-${item.episodeNumber}`;
   return (
     <>
       <NonceJsonLd value={schema} />
+      <NonceJsonLd value={breadcrumb} />
       <article className="episode-page">
         <header>
           <div>
@@ -128,10 +144,12 @@ export default async function EpisodePage({
             />
           </div>
           <section>
-            <nav>
+            <nav aria-label="Breadcrumb">
               <Link href="/tv">TV Series</Link>
               <span>/</span>
               <Link href={`/tv/${series.slug}`}>{series.title}</Link>
+              <span>/</span>
+              <span>{episode.title}</span>
             </nav>
             <span className="detail-kicker">
               Season {season.seasonNumber} · Episode {episode.episodeNumber}

@@ -58,7 +58,29 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  const initialSeo = initial?.seo as Record<string, unknown> | undefined;
+  const [seoPreview, setSeoPreview] = useState(() => ({
+    title: String(initialSeo?.title || `${String(initial?.title || "Movie title")} ${initial?.year ? `(${String(initial.year)}) ` : ""}Movie Details`),
+    description: String(initialSeo?.description || initial?.overview || "Add a clear overview to generate a useful search description."),
+    canonical: String(initialSeo?.canonical || `https://cineseya.lk/movies/${String(initial?.slug || "movie-slug")}`),
+    indexable: !Boolean(initialSeo?.noindex) && String(initial?.publicationStatus || "draft") === "published",
+    hasPoster: Boolean(initial?.posterUrl),
+  }));
   const editing = Boolean(initial?._id);
+  function syncSeoPreview(event: FormEvent<HTMLFormElement>) {
+    const form = new FormData(event.currentTarget);
+    const title = String(form.get("title") || "Movie title").trim();
+    const year = String(form.get("year") || "").trim();
+    const slug = String(form.get("slug") || "movie-slug").trim();
+    const overview = String(form.get("overview") || "").trim();
+    setSeoPreview({
+      title: String(form.get("seoTitle") || "").trim() || `${title}${year ? ` (${year})` : ""} Movie Details`,
+      description: String(form.get("seoDescription") || "").trim() || overview || "Add a clear overview to generate a useful search description.",
+      canonical: String(form.get("seoCanonical") || "").trim() || `https://cineseya.lk/movies/${slug}`,
+      indexable: !form.has("seoNoindex") && String(form.get("publicationStatus")) === "published",
+      hasPoster: Boolean(String(form.get("posterUrl") || "").trim()),
+    });
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
@@ -171,7 +193,7 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
     }
   }
   return (
-    <form className="admin-editor" onSubmit={submit}>
+    <form className="admin-editor" onSubmit={submit} onInput={syncSeoPreview}>
       <div className="admin-editor-toolbar">
         <div>
           {editing && initial?.slug ? (
@@ -632,6 +654,19 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
             />{" "}
             Prevent search indexing
           </label>
+          <section className="admin-seo-preview span-2" aria-live="polite">
+            <span>Google preview</span>
+            <h3>{seoPreview.title}</h3>
+            <code>{seoPreview.canonical}</code>
+            <p>{seoPreview.description.slice(0, 170)}</p>
+            <ul>
+              <li data-ready={seoPreview.title.length >= 20 && seoPreview.title.length <= 65}>Title {seoPreview.title.length}/65</li>
+              <li data-ready={seoPreview.description.length >= 80 && seoPreview.description.length <= 170}>Description {seoPreview.description.length}/170</li>
+              <li data-ready={seoPreview.canonical.startsWith("https://cineseya.lk/movies/")}>Canonical host</li>
+              <li data-ready={seoPreview.hasPoster}>Social image</li>
+              <li data-ready={seoPreview.indexable}>{seoPreview.indexable ? "Published and indexable" : "Not currently indexable"}</li>
+            </ul>
+          </section>
         </div>
       </details>
     </form>

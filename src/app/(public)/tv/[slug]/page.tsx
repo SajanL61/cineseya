@@ -9,8 +9,14 @@ import { currentUser } from "@/lib/auth";
 import { rightsLabel } from "@/lib/rights";
 import { getSeriesBySlug } from "@/services/catalog";
 import { CineBackdrop, CinePoster } from "@/components/ui/cine-artwork";
-import { absoluteSiteUrl } from "@/lib/assets";
 import { NonceJsonLd } from "@/components/seo/nonce-json-ld";
+import {
+  breadcrumbJsonLd,
+  canonicalUrl,
+  conciseDescription,
+  hasSinhalaSubtitle,
+  publicSeoImage,
+} from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata({
@@ -20,18 +26,19 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const series = await getSeriesBySlug(slug);
-  return series
-    ? {
-        title: `${series.title} — TV Series`,
-        description: series.overview,
-        alternates: { canonical: `/tv/${series.slug}` },
-        openGraph: {
-          title: series.title,
-          description: series.overview,
-          images: [series.backdropUrl],
-        },
-      }
-    : {};
+  if (!series) return {};
+  const route = `/tv/${series.slug}`;
+  const hasSinhala = hasSinhalaSubtitle(series.seasons.flatMap((season) => season.episodes.flatMap((episode) => episode.subtitleLanguages)));
+  const title = `${series.title} (${series.year}) TV Series${hasSinhala ? ' Sinhala Subtitles' : ''}`;
+  const description = conciseDescription(`${series.title} season and episode guide${hasSinhala ? ' with published Sinhala subtitles' : ''}. ${series.overview}`, `TV series details for ${series.title} on CineSeya.`);
+  const image = publicSeoImage(series.backdropUrl, publicSeoImage(series.posterUrl));
+  return {
+    title,
+    description,
+    alternates: { canonical: route },
+    openGraph: { type: 'video.tv_show', siteName: 'CineSeya', title, description, url: canonicalUrl(route), images: [{ url: image, alt: `${series.title} (${series.year})` }] },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
+  };
 }
 export default async function SeriesPage({
   params,
@@ -46,19 +53,38 @@ export default async function SeriesPage({
     (sum, item) => sum + item.episodes.length,
     0,
   );
+  const route = `/tv/${series.slug}`;
+  const directors = (series.crew ?? []).filter((credit) => credit.role?.toLowerCase().includes('director'));
   const schema = {
     "@context": "https://schema.org",
     "@type": "TVSeries",
+    "@id": `${canonicalUrl(route)}#series`,
+    url: canonicalUrl(route),
     name: series.title,
+    alternateName: [series.originalTitle, series.sinhalaTitle].filter(Boolean),
     description: series.overview,
-    image: absoluteSiteUrl(series.posterUrl),
+    image: publicSeoImage(series.posterUrl),
+    contentRating: series.ageRating && series.ageRating !== 'NR' ? series.ageRating : undefined,
+    inLanguage: series.languages,
     numberOfSeasons: series.seasons.length,
     numberOfEpisodes: episodeCount,
     genre: series.genres,
+    actor: (series.cast ?? []).map((credit) => ({ '@type': 'Person', name: credit.name })),
+    director: directors.map((credit) => ({ '@type': 'Person', name: credit.name })),
+    sameAs: [
+      series.imdbId ? `https://www.imdb.com/title/${series.imdbId}/` : undefined,
+      series.tmdbId ? `https://www.themoviedb.org/tv/${series.tmdbId}` : undefined,
+    ].filter(Boolean),
   };
+  const breadcrumb = breadcrumbJsonLd([
+    { name: 'Home', path: '/' },
+    { name: 'TV Series', path: '/tv' },
+    { name: series.title, path: route },
+  ]);
   return (
     <>
       <NonceJsonLd value={schema} />
+      <NonceJsonLd value={breadcrumb} />
       <article className="series-page">
         <header className="series-hero">
           <div className="detail-backdrop">
@@ -75,7 +101,7 @@ export default async function SeriesPage({
             <div className="detail-poster">
               <CinePoster
                 src={series.posterUrl}
-                alt={`${series.title} poster`}
+                alt={`${series.title} (${series.year}) poster`}
                 focalPoint={series.posterFocalPoint}
                 fillContainer
                 sizes="250px"

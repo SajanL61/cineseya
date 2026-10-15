@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { SeriesCard } from "@/components/tv/series-card";
 import { getSeries } from "@/services/catalog";
+import { socialMetadata } from "@/lib/seo";
 
+const title = "TV Series & Episode Subtitles";
+const description = "Browse published TV series, season guides, episode details and subtitles matched to the correct episode.";
 export const metadata: Metadata = {
-  title: "TV Series",
-  description:
-    "Browse TV series, seasons, episodes and episode-specific subtitles.",
+  title,
+  description,
+  alternates: { canonical: "/tv" },
+  ...socialMetadata(title, description, '/tv'),
 };
 export const dynamic = "force-dynamic";
 export default async function TvPage() {

@@ -4,9 +4,23 @@ import { DiscoverFilters } from '@/components/discover/discover-filters';
 import { CatalogGrid } from '@/components/movie/catalog-grid';
 import { getMovies } from '@/services/catalog';
 import type { DiscoverFilters as Filters } from '@/types/content';
+import { socialMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Discover', description: 'Filter movies and TV by genre, language, country, year, rating, quality and subtitle language.', robots: { index: false, follow: true } };
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+  const params = await searchParams;
+  const filtered = Object.values(params).some((value) => value !== undefined && value !== '');
+  const title = 'Discover Movies & TV Series';
+  const description = 'Explore the CineSeya catalogue by genre, language, country, year and subtitle availability.';
+  return {
+    title,
+    description,
+    alternates: { canonical: '/discover' },
+    robots: filtered ? { index: false, follow: true } : { index: true, follow: true },
+    ...socialMetadata(title, description, '/discover'),
+  };
+}
 
 export default async function DiscoverPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const raw = await searchParams;

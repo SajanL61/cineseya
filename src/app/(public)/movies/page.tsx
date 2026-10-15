@@ -2,9 +2,23 @@ import type { Metadata } from 'next';
 import { CatalogGrid } from '@/components/movie/catalog-grid';
 import { getMovies } from '@/services/catalog';
 import type { DiscoverFilters } from '@/types/content';
+import { socialMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Movies', description: 'Browse movies with Sinhala and English subtitle availability on CineSeya.lk.', alternates: { canonical: '/movies' } };
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+  const params = await searchParams;
+  const filtered = Object.values(params).some((value) => value !== undefined && value !== '');
+  const title = 'Movies with Sinhala Subtitles';
+  const description = 'Browse published movies, release details, trailers and matched Sinhala subtitle availability on CineSeya.';
+  return {
+    title,
+    description,
+    alternates: { canonical: '/movies' },
+    robots: filtered ? { index: false, follow: true } : { index: true, follow: true },
+    ...socialMetadata(title, description, '/movies'),
+  };
+}
 
 export default async function MoviesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;

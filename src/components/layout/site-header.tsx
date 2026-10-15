@@ -9,7 +9,7 @@ import { SearchOverlay } from './search-overlay';
 import type { AuthUser } from '@/types/auth';
 
 const links = [
-  ['/movies', 'Movies'], ['/tv', 'TV Series'], ['/subtitles', 'Subtitles'], ['/movies?sort=newest', 'New Releases'],
+  ['/movies', 'Movies'], ['/tv', 'TV Series'], ['/subtitles/sinhala', 'Sinhala Subtitles'], ['/movies?sort=newest', 'New Releases'],
   ['/discover?sort=trending', 'Trending'], ['/genres', 'Genres'], ['/languages', 'Languages'],
 ] as const;
 

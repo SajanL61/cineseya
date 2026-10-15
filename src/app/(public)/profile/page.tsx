@@ -4,7 +4,7 @@ import { ChangePasswordForm } from '@/components/auth/change-password-form';
 import { requireUser } from '@/lib/auth';
 import { LogoutButton } from '@/components/auth/logout-button';
 
-export const metadata = { title: 'Your profile' };
+export const metadata = { title: 'Your profile', robots: { index: false, follow: false } };
 export default async function ProfilePage() {
   const { user } = await requireUser('/profile');
   return <section className="profile-page"><header><div className="profile-avatar"><UserRound/></div><div><span>Member profile</span><h1>{user.displayName}</h1><p>{user.email}</p></div><div className="profile-role"><ShieldCheck/><span>{user.role.replace('_',' ')}</span></div></header><div className="profile-grid">

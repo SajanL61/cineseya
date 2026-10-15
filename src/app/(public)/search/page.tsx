@@ -6,7 +6,7 @@ import { SeriesCard } from '@/components/tv/series-card';
 import { getMovies, getSearchSuggestions, searchSeries } from '@/services/catalog';
 import { SearchEventTracker } from '@/components/search/search-event-tracker';
 
-export const metadata: Metadata = { title: 'Search', robots: { index: false, follow: true } };
+export const metadata: Metadata = { title: 'Search', alternates: { canonical: '/search' }, robots: { index: false, follow: true } };
 export const dynamic = 'force-dynamic';
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {

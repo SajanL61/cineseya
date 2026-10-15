@@ -91,7 +91,7 @@ export function TrendingHeroCarousel({ movies }: { movies: MovieRecord[] }) {
         <div className="hero-content">
           <div className="hero-content-inner">
             <span className="hero-kicker">Trending on CineSeya.lk</span>
-            <h1>{movie.title}</h1>
+            <h2>{movie.title}</h2>
             {movie.sinhalaTitle && <p className="hero-sinhala" lang="si">{movie.sinhalaTitle}</p>}
             <div className="hero-meta">
               {movie.imdbRating && <span className="rating">★ {movie.imdbRating.toFixed(1)}</span>}

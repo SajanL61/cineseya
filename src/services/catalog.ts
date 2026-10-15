@@ -37,6 +37,11 @@ const asDocument = (value: unknown) =>
     : undefined;
 const referenceId = (value: unknown) =>
   String(asDocument(value)?._id ?? value ?? "");
+const optionalIsoDate = (value: unknown) => {
+  if (!value) return undefined;
+  const date = new Date(value as string | number | Date);
+  return Number.isNaN(date.valueOf()) ? undefined : date.toISOString();
+};
 
 function filterMovies(items: MovieRecord[], filters: DiscoverFilters = {}) {
   let result = [...items];
@@ -178,6 +183,9 @@ function toMovieRecord(document: Record<string, unknown>): MovieRecord {
     qualities: [],
     subtitleLanguages: [],
     releaseStatus: String(document.releaseStatus ?? "Released"),
+    seo: asDocument(document.seo) as MovieRecord["seo"],
+    publishedAt: optionalIsoDate(document.publishedAt),
+    updatedAt: optionalIsoDate(document.updatedAt),
   };
 }
 
@@ -245,7 +253,7 @@ async function enrichMovieRecords(documents: Record<string, unknown>[]) {
 }
 
 export async function getMovies(filters: DiscoverFilters = {}) {
-  if (useDemoData) return filterMovies(demoMovies, filters);
+  if (useDemoData) return filterMovies(demoMovies.filter((movie) => movie.publicationStatus === 'published'), filters);
   await connectDb();
   const query: Record<string, unknown> = { publicationStatus: "published" };
   if (filters.genre) query.genres = filters.genre;
@@ -339,6 +347,7 @@ export async function getSeries(): Promise<SeriesRecord[]> {
               ],
               rightsStatus:
                 episode.rightsStatus as SeriesRecord["rightsStatus"],
+              updatedAt: optionalIsoDate(episode.updatedAt),
             })),
           };
         }),
@@ -379,6 +388,11 @@ export async function getSeries(): Promise<SeriesRecord[]> {
         seasons,
         featured: Boolean(row.featured),
         trending: Boolean(row.trending),
+        trailerUrl: row.trailerUrl ? String(row.trailerUrl) : undefined,
+        imdbId: row.imdbId ? String(row.imdbId) : undefined,
+        tmdbId: row.tmdbId ? String(row.tmdbId) : undefined,
+        publishedAt: optionalIsoDate(row.publishedAt),
+        updatedAt: optionalIsoDate(row.updatedAt),
       } satisfies SeriesRecord;
     }),
   );
@@ -419,7 +433,7 @@ export async function getSubtitles(
 ): Promise<SubtitleRecord[]> {
   if (useDemoData)
     return demoSubtitles.filter(
-      (subtitle) => !languageCode || subtitle.languageCode === languageCode,
+      (subtitle) => subtitle.status === 'published' && (!languageCode || subtitle.languageCode === languageCode),
     );
   await connectDb();
   const rows = await Subtitle.find({
@@ -534,7 +548,30 @@ export async function getTranslatorBySlug(
     totalSubtitles: Number(row.totalSubtitles ?? 0),
     totalDownloads: Number(row.totalDownloads ?? 0),
     averageRating: Number(row.averageRating ?? 0),
+    updatedAt: optionalIsoDate(row.updatedAt),
   };
+}
+
+export async function getTranslators(): Promise<TranslatorRecord[]> {
+  if (useDemoData) return demoTranslators;
+  await connectDb();
+  const publishedTranslatorIds = await Subtitle.distinct('translator', { status: 'published' });
+  const rows = await TranslatorProfile.find({ _id: { $in: publishedTranslatorIds } })
+    .sort({ verified: -1, totalSubtitles: -1, displayName: 1 })
+    .lean();
+  return rows.map((row) => ({
+    id: String(row._id),
+    slug: String(row.slug),
+    displayName: String(row.displayName),
+    avatarUrl: resolvePublicAssetUrl(row.avatarUrl),
+    bio: String(row.bio ?? ""),
+    joinedAt: new Date(row.createdAt as Date).toISOString(),
+    verified: Boolean(row.verified),
+    totalSubtitles: Number(row.totalSubtitles ?? 0),
+    totalDownloads: Number(row.totalDownloads ?? 0),
+    averageRating: Number(row.averageRating ?? 0),
+    updatedAt: optionalIsoDate(row.updatedAt),
+  }));
 }
 
 export async function getTranslatorSubtitles(translatorId: string) {

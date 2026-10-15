@@ -7,7 +7,6 @@ import { TrailerDialog } from "@/components/movie/trailer-dialog";
 import { WatchlistButton } from "@/components/movie/watchlist-button";
 import { SubtitleCard } from "@/components/subtitle/subtitle-card";
 import { mayDistributeFullMedia, rightsLabel } from "@/lib/rights";
-import { siteUrl } from "@/lib/env";
 import {
   getActiveMediaVersions,
   getMovieBySlug,
@@ -18,7 +17,6 @@ import { currentUser } from "@/lib/auth";
 import { CommunityPanel } from "@/components/community/community-panel";
 import { DownloadOptions } from "@/components/movie/download-server-options";
 import { CineBackdrop, CinePoster } from "@/components/ui/cine-artwork";
-import { absoluteSiteUrl } from "@/lib/assets";
 import { getReadyStreamForContent } from "@/services/media";
 import type { MediaVersionDto } from "@/types/media";
 import { SubtitleInterest } from "@/components/subtitle/subtitle-interest";
@@ -29,6 +27,14 @@ import { AdPageLoader } from "@/components/ads/ad-page-loader";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { evaluateAdEligibility } from "@/lib/ads";
 import { getAdSettings } from "@/services/ad-settings";
+import {
+  breadcrumbJsonLd,
+  canonicalOverride,
+  canonicalUrl,
+  conciseDescription,
+  hasSinhalaSubtitle,
+  publicSeoImage,
+} from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 export async function generateMetadata({
@@ -39,28 +45,35 @@ export async function generateMetadata({
   const { slug } = await params;
   const movie = await getMovieBySlug(slug);
   if (!movie) return {};
-  const description =
-    `${movie.title} (${movie.year}) on CineSeya.lk${movie.subtitleLanguages.length ? ` · ${movie.subtitleLanguages.join(", ")} subtitles available` : ""}. ${movie.overview}`.slice(
-      0,
-      200,
-    );
+  const sinhalaAvailable = hasSinhalaSubtitle(movie.subtitleLanguages);
+  const title = movie.seo?.title?.trim() ||
+    `${movie.title} (${movie.year}) ${sinhalaAvailable ? "Sinhala Subtitles" : "Movie Details"}`;
+  const description = conciseDescription(
+    movie.seo?.description ||
+      `${movie.title} (${movie.year}) ${sinhalaAvailable ? "has published Sinhala subtitles on CineSeya. " : "movie details on CineSeya. "}${movie.overview}`,
+    `Movie details for ${movie.title} on CineSeya.`,
+  );
+  const route = `/movies/${movie.slug}`;
+  const canonical = canonicalOverride(movie.seo?.canonical, route);
+  const image = publicSeoImage(movie.backdropUrl, publicSeoImage(movie.posterUrl));
   return {
-    title: `${movie.title} (${movie.year})`,
+    title,
     description,
-    alternates: { canonical: `/movies/${movie.slug}` },
+    alternates: { canonical },
+    robots: movie.seo?.noindex ? { index: false, follow: true } : { index: true, follow: true },
     openGraph: {
       type: "video.movie",
-      siteName: "CineSeya.lk",
-      title: `${movie.title} (${movie.year})`,
+      siteName: "CineSeya",
+      title,
       description,
-      images: [movie.backdropUrl],
-      url: `${siteUrl}/movies/${movie.slug}`,
+      images: [{ url: image, alt: `${movie.title} (${movie.year})` }],
+      url: canonical,
     },
     twitter: {
       card: "summary_large_image",
-      title: `${movie.title} (${movie.year})`,
+      title,
       description,
-      images: [movie.backdropUrl],
+      images: [image],
     },
   };
 }
@@ -173,22 +186,37 @@ export default async function MovieDetailPage({
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Movie",
+    "@id": `${canonicalUrl(route)}#movie`,
+    url: canonicalUrl(route),
     name: movie.title,
-    alternateName: movie.originalTitle ?? movie.sinhalaTitle,
-    dateCreated: String(movie.year),
-    duration: `PT${movie.runtime}M`,
+    alternateName: [movie.originalTitle, movie.sinhalaTitle].filter(Boolean),
+    datePublished: movie.releaseDate,
+    duration: movie.runtime > 0 ? `PT${movie.runtime}M` : undefined,
     description: movie.overview,
-    image: absoluteSiteUrl(movie.posterUrl),
+    image: publicSeoImage(movie.posterUrl),
     genre: movie.genres,
+    inLanguage: movie.languages,
+    contentRating: movie.ageRating && movie.ageRating !== "NR" ? movie.ageRating : undefined,
     countryOfOrigin: movie.countries.map((name) => ({
       "@type": "Country",
       name,
     })),
+    actor: movie.cast.map((credit) => ({ "@type": "Person", name: credit.name })),
     director: director ? { "@type": "Person", name: director.name } : undefined,
+    sameAs: [
+      movie.imdbId ? `https://www.imdb.com/title/${movie.imdbId}/` : undefined,
+      movie.tmdbId ? `https://www.themoviedb.org/movie/${movie.tmdbId}` : undefined,
+    ].filter(Boolean),
   };
+  const breadcrumb = breadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Movies", path: "/movies" },
+    { name: movie.title, path: route },
+  ]);
   return (
     <>
       <NonceJsonLd value={jsonLd} />
+      <NonceJsonLd value={breadcrumb} />
       <AdPageLoader
         enabled={Boolean(liveAd)}
         publisherId={liveAd?.publisherId}
@@ -209,7 +237,7 @@ export default async function MovieDetailPage({
             <div className="detail-poster">
               <CinePoster
                 src={movie.posterUrl}
-                alt={`${movie.title} poster`}
+                alt={`${movie.title} (${movie.year}) poster`}
                 focalPoint={movie.posterFocalPoint}
                 fillContainer
                 sizes="260px"

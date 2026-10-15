@@ -4,7 +4,7 @@ import { requireUser } from '@/lib/auth';
 import { connectDb } from '@/lib/db';
 import { Notification } from '@/models';
 
-export const metadata = { title: 'Notifications' };
+export const metadata = { title: 'Notifications', robots: { index: false, follow: false } };
 export default async function NotificationsPage() {
   const { user } = await requireUser('/profile/notifications');
   await connectDb();
