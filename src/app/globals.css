@@ -271,6 +271,12 @@ img { display: block; max-width: 100%; }
 .subtitle-edit-button { min-width: 82px; min-height: 34px; padding: 0 11px; border: 1px solid rgba(230,163,73,.55); background: rgba(230,163,73,.08); color: #f0b75f; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; font-size: 10px; font-weight: 800; }
 .subtitle-edit-button:hover { background: rgba(230,163,73,.16); }
 .subtitle-edit-button svg { width: 13px; }
+.subtitle-delete-button { width: 34px; height: 34px; padding: 0; border: 1px solid rgba(225,91,85,.55); background: rgba(225,91,85,.08); color: #ef8883; display: grid; place-items: center; cursor: pointer; }
+.subtitle-delete-button:hover { background: rgba(225,91,85,.17); color: #ffaaa6; }
+.subtitle-delete-button:disabled { cursor: wait; opacity: .55; }
+.subtitle-delete-button svg { width: 14px; }
+.subtitle-delete-error { flex-basis: 100%; max-width: 300px; color: #f19a95; font-size: 9px; line-height: 1.35; }
+.subtitle-deleted { color: #82ddb0; font-size: 10px; font-weight: 800; }
 .subtitle-edit-backdrop { position: fixed; inset: 0; z-index: 500; padding: 28px; overflow-y: auto; background: rgba(2,4,8,.86); backdrop-filter: blur(8px); display: grid; place-items: start center; }
 .subtitle-edit-panel { width: min(100%,980px); margin: auto; border: 1px solid #353e4a; border-radius: 14px; background: #0d1117; box-shadow: 0 30px 100px rgba(0,0,0,.72); color: #eef1f5; }
 .subtitle-edit-panel>header { min-height: 76px; padding: 15px 18px; border-bottom: 1px solid #2a313b; background: #111720; display: flex; align-items: center; justify-content: space-between; }

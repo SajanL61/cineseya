@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canEditSubtitle, canPublishSubtitle, ROLE_PERMISSIONS } from '../src/types/auth';
+import { canDeleteSubtitle, canEditSubtitle, canPublishSubtitle, ROLE_PERMISSIONS } from '../src/types/auth';
 
 describe('role permissions', () => {
   it('keeps public users outside the admin boundary', () => {
@@ -34,6 +34,13 @@ describe('role permissions', () => {
     expect(canEditSubtitle(ROLE_PERMISSIONS.editor, 'published')).toBe(false);
     expect(canEditSubtitle(ROLE_PERMISSIONS.admin, 'published')).toBe(true);
     expect(canEditSubtitle(ROLE_PERMISSIONS.viewer, 'draft')).toBe(false);
+  });
+
+  it('shows subtitle deletion only to users with the dedicated delete permission', () => {
+    expect(canDeleteSubtitle(ROLE_PERMISSIONS.admin)).toBe(true);
+    expect(canDeleteSubtitle(ROLE_PERMISSIONS.editor)).toBe(false);
+    expect(canDeleteSubtitle(['subtitles.update', 'subtitles.verify'])).toBe(false);
+    expect(canDeleteSubtitle(['subtitles.delete'])).toBe(true);
   });
 
   it('limits advertising configuration writes to settings administrators', () => {

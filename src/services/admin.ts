@@ -32,7 +32,10 @@ const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$
 export async function getAdminCollection(resource: ResourceKey, query = '', page = 1) {
   await connectDb();
   const definition = resources[resource];
-  const filter = query ? { [definition.searchField]: { $regex: escapeRegex(query.slice(0, 80)), $options: 'i' } } : {};
+  const filter: Record<string, unknown> = {
+    ...(resource === 'subtitles' ? { status: { $ne: 'disabled' } } : {}),
+    ...(query ? { [definition.searchField]: { $regex: escapeRegex(query.slice(0, 80)), $options: 'i' } } : {}),
+  };
   const [rawItems, total] = await Promise.all([
     definition.model.find(filter).select(definition.select).sort({ updatedAt: -1, createdAt: -1 }).skip((page - 1) * 30).limit(30).lean(),
     definition.model.countDocuments(filter),

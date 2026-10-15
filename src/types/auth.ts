@@ -22,6 +22,10 @@ export function canEditSubtitle(permissions: readonly Permission[], status: stri
   return permissions.includes('subtitles.update') && (status !== 'published' || permissions.includes('subtitles.verify'));
 }
 
+export function canDeleteSubtitle(permissions: readonly Permission[]) {
+  return permissions.includes('subtitles.delete');
+}
+
 const allPermissions = [...PERMISSIONS];
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   super_admin: allPermissions,

@@ -185,3 +185,42 @@ export async function PATCH(request: Request, { params }: RouteContext<'/api/adm
     return Response.json({ id, status: updated.status, verified: updated.verified, subtitle: responseRecord(updated, nextContent, translator ? plain(translator) : null), notificationsCreated: delivery?.notifications ?? 0 });
   } catch (error) { return apiError(error); }
 }
+
+export async function DELETE(request: Request, { params }: RouteContext<'/api/admin/subtitles/[id]'>) {
+  try {
+    const session = await requirePermission('subtitles.delete');
+    await assertMutationRequest(request, session);
+    const { id } = await params;
+    if (!isValidObjectId(id)) throw Object.assign(new Error('Subtitle was not found.'), { status: 404, code: 'NOT_FOUND' });
+    await connectDb();
+    const current = await Subtitle.findById(id).select('fileName language movie episode status').lean();
+    if (!current) throw Object.assign(new Error('Subtitle was not found.'), { status: 404, code: 'NOT_FOUND' });
+    if (current.status === 'disabled') return Response.json({ ok: true, id, status: 'disabled' });
+
+    const updated = await Subtitle.findOneAndUpdate(
+      { _id: id, status: { $ne: 'disabled' } },
+      { $set: { status: 'disabled' } },
+      { new: true, runValidators: true },
+    );
+    if (!updated) throw Object.assign(new Error('This subtitle was changed by another administrator. Reload the list and try again.'), { status: 409, code: 'DELETE_CONFLICT' });
+
+    await AuditLog.create({
+      actor: session.user.id,
+      action: 'subtitle.delete',
+      entity: 'Subtitle',
+      entityId: id,
+      metadata: {
+        fileName: current.fileName,
+        language: current.language,
+        contentType: current.movie ? 'movie' : 'episode',
+        contentId: String(current.movie ?? current.episode ?? ''),
+        previousStatus: current.status,
+        recordPreserved: true,
+        uploadedFilePreserved: true,
+      },
+    });
+    return Response.json({ ok: true, id, status: 'disabled' });
+  } catch (error) {
+    return apiError(error);
+  }
+}
