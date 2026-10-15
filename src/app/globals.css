@@ -293,6 +293,53 @@ img { display: block; max-width: 100%; }
 .r2-diagnostic-grid small { grid-column: 1/-1; color: #e1a19c; font-size: 8px; }
 @media (max-width: 800px) { .r2-diagnostics>header { align-items: flex-start; flex-wrap: wrap; }.r2-diagnostics>header .admin-primary { width: 100%; }.r2-diagnostic-grid { grid-template-columns: 1fr; } }
 
+/* Admin readability: keep the dense layout while lifting very small operational text. */
+.admin-shell { font-size: 16px; }
+.admin-shell input,.admin-shell textarea,.admin-shell select { font-size: 12px; }
+.admin-shell label,.admin-shell button { font-size: 10px; }
+.admin-shell small { font-size: 9px; }
+.admin-sidebar nav a { font-size: 11px; }
+.admin-account b { font-size: 11px; }
+.admin-account span { font-size: 9px; }
+.admin-topbar span { font-size: 9px; }
+.admin-topbar b { font-size: 11px; }
+.admin-back { font-size: 10px; }
+.admin-page-head>div>span { font-size: 10px; }
+.admin-primary,.admin-danger { font-size: 10px; }
+.admin-stats span { font-size: 10px; }
+.admin-panel-head span,.admin-panel-head a { font-size: 10px; }
+.admin-attention span,.audit-mini span,.rank-list span,.rank-list em { font-size: 11px; }
+.audit-mini small,.audit-mini p { font-size: 10px; }
+.admin-search button { font-size: 10px; }
+.admin-table-row b { font-size: 11px; }
+.admin-table-row small,.admin-table-row>span:nth-child(2),.admin-table-row time { font-size: 10px; }
+.admin-table-labels { font-size: 9px; }
+.admin-editor-toolbar a,.admin-editor-toolbar span { font-size: 10px; }
+.admin-editor summary>span { font-size: 10px; }
+.admin-success,.admin-form-error { font-size: 11px; }
+.upload-manager header p,.r2-diagnostics header p,.storage-audit header p,.tmdb-importer header p,.media-version-manager>header p,.master-stream-upload header p { font-size: 10px; }
+.upload-progress { font-size: 10px; }
+.upload-result>strong { font-size: 12px; }
+.upload-result dt { font-size: 9px; }
+.upload-result dd { font-size: 10px; }
+.upload-result button,.upload-result a,.inline-upload-success,.inline-upload-error { font-size: 9px; }
+.r2-diagnostic-grid span { font-size: 10px; }
+.r2-diagnostic-grid small { font-size: 9px; }
+.season-records h3 { font-size: 12px; }
+.season-records span { font-size: 10px; }
+.tmdb-importer>small,.tmdb-importer>p,.tmdb-preview b { font-size: 10px; }
+.admin-inline-actions label { font-size: 9px; }
+.storage-kind-grid span,.storage-bucket-grid span,.storage-growth span { font-size: 9px; }
+.storage-findings article>span,.storage-findings>p { font-size: 10px; }
+.storage-findings code,.storage-lists b,.storage-lists small,.storage-lists em { font-size: 9px; }
+.media-version-manager>header span,.master-stream-upload>header span { font-size: 9px; }
+.media-version-records>article>header span,.mirror-records b { font-size: 10px; }
+.media-version-records>article>header em { font-size: 9px; }
+.master-stream-upload legend,.transcode-table-head { font-size: 9px; }
+.transcode-job-list b { font-size: 11px; }
+.transcode-job-list span,.transcode-job-list small,.transcode-table>article small,.transcode-table>article>p { font-size: 9px; }
+.transcode-table>article>span { font-size: 10px; }
+
 /* Keep desktop movie details close to the header instead of bottom-anchoring the hero. */
 @media (min-width: 701px) {
   .detail-hero { align-items: flex-start; }
