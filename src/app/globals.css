@@ -178,6 +178,33 @@ img { display: block; max-width: 100%; }
   .editorial-page>header,.editorial-layout { width: calc(100% - 28px); }.editorial-page>header { padding-top: 55px; }.editorial-layout { grid-template-columns: 1fr; gap: 25px; }.editorial-layout aside { position: static; flex-direction: row; gap: 13px; overflow-x: auto; }.editorial-layout aside>span { display: none; }.editorial-layout aside a { flex: none; }.form-two { grid-template-columns: 1fr; }.request-form { padding: 16px; }.person-page h1 { font-size: 34px; }
 }
 
+/* Canonical artwork frames: every poster/backdrop shares the same crop and focal behavior. */
+.cine-poster,.cine-backdrop { width: 100%; position: relative; display: block; overflow: hidden; background: #11161e; }
+.cine-poster { aspect-ratio: 2/3; }
+.cine-backdrop { aspect-ratio: 16/9; }
+.cine-poster[data-fill="true"],.cine-backdrop[data-fill="true"] { height: 100%; aspect-ratio: auto; }
+.cine-poster img,.cine-backdrop img { object-fit: cover; }
+
+/* Admin artwork crop and focal-point editor. */
+.artwork-editor { padding: 16px; border: 1px solid #2c3541; background: #0c1117; display: grid; grid-template-columns: minmax(0,1fr) minmax(230px,44%); gap: 18px; align-items: start; }
+.artwork-editor-fields { min-width: 0; display: grid; gap: 11px; }
+.artwork-editor-fields>label { display: flex; flex-direction: column; gap: 7px; }
+.artwork-metadata { padding: 11px; border: 1px solid #27303b; background: #0a0e14; display: flex; flex-direction: column; gap: 5px; color: #84909e; font-size: 9px; line-height: 1.45; }
+.artwork-metadata strong { color: #e5e9ee; font-size: 11px; }
+.artwork-note-success { color: #79d09f; }.artwork-note-warning { color: #efb565; }.artwork-note-neutral { color: #8c98a6; }
+.artwork-focal-editor { min-width: 0; display: grid; gap: 9px; }
+.artwork-focal-title { color: #d6dce4; display: flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 750; }
+.artwork-focal-title svg { width: 15px; color: var(--accent); }
+.artwork-preview-button { width: 100%; padding: 0; position: relative; border: 1px solid #394452; background: #070a0e; color: inherit; overflow: hidden; cursor: crosshair; }
+.artwork-editor-poster .artwork-preview-button { width: min(100%,260px); justify-self: center; }
+.artwork-focal-marker { width: 18px; height: 18px; position: absolute; z-index: 3; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,.75),0 0 18px rgba(230,163,73,.7); pointer-events: none; transform: translate(-50%,-50%); }
+.artwork-focal-marker:after { content: ""; width: 4px; height: 4px; position: absolute; inset: 0; margin: auto; border-radius: 50%; background: var(--accent); }
+.artwork-presets { display: flex; flex-wrap: wrap; gap: 5px; }
+.artwork-presets button { min-height: 32px; padding: 0 9px; border: 1px solid #333d49; background: #141a22; color: #aeb7c3; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.artwork-presets button:hover { border-color: var(--accent); color: var(--accent); }.artwork-presets svg { width: 12px; }
+.artwork-focal-editor>small { color: #778392; line-height: 1.5; }
+@media (max-width: 800px) { .artwork-editor { grid-template-columns: 1fr; }.artwork-editor-poster .artwork-preview-button { width: min(76vw,280px); } }
+
 /* Controlled advertising: CineSeya owns only the labelled wrapper, never the served creative. */
 .ad-placement { width: 100%; min-width: 0; margin-top: 34px; padding: 12px; border: 1px solid rgba(177,143,82,.24); background: rgba(14,17,23,.72); position: relative; overflow: visible; }
 .ad-label { display: block; margin-bottom: 9px; color: #777f8a; font-size: 7px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }

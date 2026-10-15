@@ -1,6 +1,7 @@
 export const RIGHTS_STATUSES = ['subtitle_only', 'owned', 'licensed', 'public_domain', 'unavailable'] as const;
 export type RightsStatus = (typeof RIGHTS_STATUSES)[number];
 export type PublicationStatus = 'draft' | 'scheduled' | 'published' | 'archived';
+export type FocalPoint = { x: number; y: number };
 
 export type PersonCredit = {
   name: string;
@@ -29,6 +30,8 @@ export type MovieRecord = {
   videoQuality?: string;
   posterUrl: string;
   backdropUrl: string;
+  posterFocalPoint?: FocalPoint;
+  backdropFocalPoint?: FocalPoint;
   trailerUrl?: string;
   imdbId?: string;
   tmdbId?: string;
@@ -88,6 +91,8 @@ export type SeriesRecord = {
   crew?: PersonCredit[];
   posterUrl: string;
   backdropUrl: string;
+  posterFocalPoint?: FocalPoint;
+  backdropFocalPoint?: FocalPoint;
   imdbRating?: number;
   tmdbRating?: number;
   status: string;
@@ -106,6 +111,7 @@ export type SubtitleRecord = {
   contentHref?: string;
   contentTitle: string;
   contentPosterUrl: string;
+  contentPosterFocalPoint?: FocalPoint;
   language: string;
   languageCode: string;
   translatorId: string;

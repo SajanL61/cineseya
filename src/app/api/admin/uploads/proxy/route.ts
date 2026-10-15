@@ -2,6 +2,7 @@ import { resolvePublicAssetUrl } from '@/lib/assets';
 import { assertMutationRequest, requirePermission } from '@/lib/auth';
 import { connectDb } from '@/lib/db';
 import { apiError } from '@/lib/http';
+import { inspectImageBytes } from '@/lib/image-metadata';
 import { deleteObject, r2BucketForAssetKind, r2BucketName, writeObjectBytes } from '@/lib/r2';
 import { buildStorageObjectKey, sanitizeStorageFileName } from '@/lib/storage-key';
 import { presignUploadSchema, uploadLimitFor, validateSubtitleArchive } from '@/lib/validation/upload';
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
     if (input.kind === 'subtitle' && input.fileName.toLocaleLowerCase().endsWith('.zip')) {
       archiveMetadata = await validateSubtitleArchive(bytes);
     }
+    const artworkMetadata = ['poster', 'backdrop', 'avatar'].includes(input.kind)
+      ? inspectImageBytes(bytes, input.contentType, input.size)
+      : undefined;
 
     const safeInput = { ...input, fileName: sanitizeStorageFileName(input.fileName) };
     const bucketKind = r2BucketForAssetKind(safeInput.kind);
@@ -94,7 +98,7 @@ export async function POST(request: Request) {
       linkedModel: safeInput.linkedModel,
       linkedId: safeInput.linkedId,
       uploadedBy: session.user.id,
-      metadata: { requestedAt: new Date(), bucketKind, purpose: safeInput.purpose, uploadMode: 'server_proxy' },
+      metadata: { requestedAt: new Date(), bucketKind, purpose: safeInput.purpose, uploadMode: 'server_proxy', ...artworkMetadata },
     });
 
     let objectWritten = false;
@@ -118,7 +122,7 @@ export async function POST(request: Request) {
         action: 'media.server_upload',
         entity: 'MediaAsset',
         entityId: String(asset._id),
-        metadata: { kind: asset.kind, objectKey: asset.objectKey, bucket: asset.bucket, size: asset.size },
+        metadata: { kind: asset.kind, objectKey: asset.objectKey, bucket: asset.bucket, size: asset.size, width: artworkMetadata?.width, height: artworkMetadata?.height },
       });
       return Response.json({
         asset: {
@@ -130,6 +134,7 @@ export async function POST(request: Request) {
           size: asset.size,
           status: asset.status,
           publicUrl,
+          metadata: artworkMetadata,
         },
       }, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {

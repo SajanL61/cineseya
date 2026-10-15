@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { SafeImage } from '@/components/ui/safe-image';
+import { CinePoster } from '@/components/ui/cine-artwork';
+import type { FocalPoint } from '@/lib/artwork';
 import { readMigratedStorage, RECENT_SEARCH_STORAGE_KEY } from '@/lib/client/browser-brand';
 import { splitMatchedText } from '@/lib/search';
 
-type Suggestion = { type: string; title: string; subtitle: string; slug: string; href?: string; image?: string };
+type Suggestion = { type: string; title: string; subtitle: string; slug: string; href?: string; image?: string; focalPoint?: FocalPoint };
 const RECENT_KEY = RECENT_SEARCH_STORAGE_KEY;
 
 function destination(item: Suggestion) {
@@ -84,7 +86,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
           <div className="search-state"><span>Results for “{query}”</span>{loading && <i>Searching…</i>}</div>
           <div className="suggestion-list" id="search-suggestions" role="listbox">
             {!loading && items.map((item, index) => <Link id={`search-suggestion-${index}`} role="option" aria-selected={activeIndex === index} className={activeIndex === index ? 'active' : ''} key={`${item.type}-${item.slug}`} href={destination(item)} onMouseEnter={() => setActiveIndex(index)} onClick={() => { remember(query.trim()); onClose(); }}>
-              <span className="suggestion-image">{item.image ? <SafeImage src={item.image} fallbackSrc="/media/fallback-poster.svg" alt="" fill sizes="52px" /> : <Search />}</span>
+              <span className="suggestion-image">{item.image ? (['movie','series','subtitle'].includes(item.type) ? <CinePoster src={item.image} alt="" focalPoint={item.focalPoint} fillContainer sizes="52px"/> : <SafeImage src={item.image} fallbackSrc="/media/fallback-poster.svg" alt="" fill sizes="52px" />) : <Search />}</span>
               <span><b><Highlight value={item.title} query={query}/></b><small>{item.subtitle}</small></span><em>{item.type}</em><ArrowRight />
             </Link>)}
             {!loading && !items.length && <div className="no-suggestions"><Search /><b>No close matches</b><p>Try fewer words, an original title, actor, language, or translator name.</p><Link href={`/search?q=${encodeURIComponent(query)}`} onClick={() => { remember(query.trim()); onClose(); }}>Search all content</Link></div>}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { TrailerDialog } from '@/components/movie/trailer-dialog';
 import { WatchlistButton } from '@/components/movie/watchlist-button';
-import { SafeImage } from '@/components/ui/safe-image';
+import { CineBackdrop } from '@/components/ui/cine-artwork';
 import type { MovieRecord } from '@/types/content';
 
 const ROTATION_INTERVAL = 3_000;
@@ -82,7 +82,7 @@ export function TrendingHeroCarousel({ movies }: { movies: MovieRecord[] }) {
       <div className="hero-carousel-backdrops" aria-hidden="true">
         {movies.map((item, index) => (
           <div className={`hero-backdrop hero-carousel-backdrop${index === current ? ' active' : ''}`} key={item.id}>
-            <SafeImage src={item.backdropUrl} fallbackSrc="/media/fallback-backdrop.svg" alt="" fill priority={index === 0} sizes="100vw" />
+            <CineBackdrop src={item.backdropUrl} alt="" focalPoint={item.backdropFocalPoint} fillContainer preload={index === 0} sizes="100vw" />
           </div>
         ))}
       </div>
@@ -104,7 +104,7 @@ export function TrendingHeroCarousel({ movies }: { movies: MovieRecord[] }) {
             <div className="hero-actions">
               <Link className="action-button" href={`/movies/${movie.slug}`}><Info/>View Details</Link>
               {movie.trailerUrl && <TrailerDialog title={movie.title} url={movie.trailerUrl}/>}
-              <WatchlistButton id={movie.id} slug={movie.slug} title={movie.title} posterUrl={movie.posterUrl} label/>
+              <WatchlistButton id={movie.id} slug={movie.slug} title={movie.title} posterUrl={movie.posterUrl} posterFocalPoint={movie.posterFocalPoint} label/>
             </div>
           </div>
         </div>

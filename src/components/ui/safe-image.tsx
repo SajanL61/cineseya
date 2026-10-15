@@ -3,7 +3,7 @@
 import Image, { type ImageProps } from 'next/image';
 import { useState } from 'react';
 
-type SafeImageProps = Omit<ImageProps, 'src'> & {
+export type SafeImageProps = Omit<ImageProps, 'src'> & {
   src: string;
   fallbackSrc: string;
 };

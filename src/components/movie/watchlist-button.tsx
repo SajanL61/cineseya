@@ -3,11 +3,12 @@
 import { Bookmark, Check } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 import { readCsrfToken, readMigratedStorage, WATCHLIST_CHANGE_EVENT, WATCHLIST_STORAGE_KEY } from '@/lib/client/browser-brand';
+import type { FocalPoint } from '@/lib/artwork';
 
 const KEY = WATCHLIST_STORAGE_KEY;
-type LocalItem = { id: string; type: 'movie' | 'series'; slug: string; title: string; posterUrl: string; addedAt: string };
+type LocalItem = { id: string; type: 'movie' | 'series'; slug: string; title: string; posterUrl: string; posterFocalPoint?: FocalPoint; addedAt: string };
 
-export function WatchlistButton({ id, type = 'movie', slug, title, posterUrl, label = false }: { id: string; type?: 'movie' | 'series'; slug: string; title: string; posterUrl: string; label?: boolean }) {
+export function WatchlistButton({ id, type = 'movie', slug, title, posterUrl, posterFocalPoint, label = false }: { id: string; type?: 'movie' | 'series'; slug: string; title: string; posterUrl: string; posterFocalPoint?: FocalPoint; label?: boolean }) {
   const saved = useSyncExternalStore((onChange) => {
     addEventListener(WATCHLIST_CHANGE_EVENT, onChange);
     addEventListener('storage', onChange);
@@ -19,7 +20,7 @@ export function WatchlistButton({ id, type = 'movie', slug, title, posterUrl, la
   const toggle = () => {
     const items: LocalItem[] = JSON.parse(readMigratedStorage(KEY) || '[]');
     const exists = items.some((item) => item.id === id && item.type === type);
-    const next = exists ? items.filter((item) => !(item.id === id && item.type === type)) : [...items, { id, type, slug, title, posterUrl, addedAt: new Date().toISOString() }];
+    const next = exists ? items.filter((item) => !(item.id === id && item.type === type)) : [...items, { id, type, slug, title, posterUrl, posterFocalPoint, addedAt: new Date().toISOString() }];
     localStorage.setItem(KEY, JSON.stringify(next));
     dispatchEvent(new CustomEvent(WATCHLIST_CHANGE_EVENT));
     if (document.documentElement.dataset.authenticated === 'true') {

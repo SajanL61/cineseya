@@ -1,6 +1,7 @@
 import { BadgeCheck, CalendarDays, Download, FileArchive, Gauge, HardDrive } from 'lucide-react';
 import Link from 'next/link';
 import { SafeImage } from '@/components/ui/safe-image';
+import { CinePoster } from '@/components/ui/cine-artwork';
 import { ShareButton } from '@/components/movie/share-dialog';
 import { absoluteSiteUrl } from '@/lib/assets';
 import type { SubtitleRecord } from '@/types/content';
@@ -11,7 +12,7 @@ function size(bytes: number) {
 
 export function SubtitleCard({ subtitle, compact = false }: { subtitle: SubtitleRecord; compact?: boolean }) {
   return <article className={`subtitle-card ${compact ? 'compact' : ''}`}>
-    {!compact && <Link className="subtitle-poster" href={subtitle.contentHref ?? `/movies/${subtitle.contentSlug}`}><SafeImage src={subtitle.contentPosterUrl} fallbackSrc="/media/fallback-poster.svg" alt="" fill sizes="76px" /></Link>}
+    {!compact && <Link className="subtitle-poster" href={subtitle.contentHref ?? `/movies/${subtitle.contentSlug}`}><CinePoster src={subtitle.contentPosterUrl} alt="" focalPoint={subtitle.contentPosterFocalPoint} fillContainer sizes="76px" /></Link>}
     <div className="subtitle-main"><div className="subtitle-title"><div><span>{subtitle.language} Subtitle</span><h3>{subtitle.contentTitle}</h3></div>{subtitle.verified && <BadgeCheck aria-label="Verified subtitle" />}</div>
       <Link className="translator-line" href={`/translator/${subtitle.translatorSlug}`}>{subtitle.translatorAvatarUrl && <span><SafeImage src={subtitle.translatorAvatarUrl} fallbackSrc="/media/fallback-poster.svg" alt="" fill sizes="24px" /></span>}Translated by <b>{subtitle.translatorName}</b></Link>
       <div className="release-matches">{subtitle.releaseMatches.map((match) => <span key={match}>{match}</span>)}</div>

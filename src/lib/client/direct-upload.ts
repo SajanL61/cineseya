@@ -1,6 +1,7 @@
 'use client';
 
 import { readCsrfToken } from './browser-brand';
+import type { ArtworkMetadata } from '@/lib/artwork';
 
 export type CompletedUploadAsset = {
   id: string;
@@ -11,6 +12,7 @@ export type CompletedUploadAsset = {
   size: number;
   status: string;
   publicUrl?: string;
+  metadata?: ArtworkMetadata;
 };
 
 type ServerUploadKind = 'poster' | 'backdrop' | 'subtitle' | 'avatar' | 'other';

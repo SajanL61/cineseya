@@ -13,6 +13,10 @@ const personCreditSchema = new Schema(
   { name: { type: String, required: true }, slug: { type: String, required: true }, role: String, character: String, profileKey: String },
   { _id: false },
 );
+const focalPointSchema = new Schema(
+  { x: { type: Number, min: 0, max: 100, required: true }, y: { type: Number, min: 0, max: 100, required: true } },
+  { _id: false },
+);
 
 const userSchema = new Schema(
   {
@@ -73,8 +77,10 @@ const movieSchema = new Schema(
     videoQuality: { type: String, trim: true, maxlength: 16 },
     posterKey: objectKey,
     posterUrl: String,
+    posterFocalPoint: focalPointSchema,
     backdropKey: objectKey,
     backdropUrl: String,
+    backdropFocalPoint: focalPointSchema,
     trailerUrl: String,
     imdbId: { type: String, sparse: true, index: true },
     tmdbId: { type: String, sparse: true, index: true },
@@ -111,7 +117,8 @@ const seriesSchema = new Schema(
     slug, overview: { type: String, required: true },
     year: { type: Number, required: true, index: true }, ageRating: String, genres: [{ type: String, index: true }],
     languages: [{ type: String, index: true }], countries: [{ type: String, index: true }], posterKey: String, posterUrl: String,
-    backdropKey: String, backdropUrl: String, trailerUrl: String, imdbId: String, tmdbId: String, imdbRating: Number, tmdbRating: Number,
+    posterFocalPoint: focalPointSchema, backdropKey: String, backdropUrl: String, backdropFocalPoint: focalPointSchema,
+    trailerUrl: String, imdbId: String, tmdbId: String, imdbRating: Number, tmdbRating: Number,
     cast: [personCreditSchema], crew: [personCreditSchema], status: { type: String, default: 'returning' }, rightsStatus: rights,
     featured: { type: Boolean, default: false, index: true }, trending: { type: Boolean, default: false, index: true },
     viewCount: { type: Number, default: 0 }, publicationStatus: publication, publishedAt: Date,
