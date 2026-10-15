@@ -277,6 +277,21 @@ img { display: block; max-width: 100%; }
 .subtitle-delete-button svg { width: 14px; }
 .subtitle-delete-error { flex-basis: 100%; max-width: 300px; color: #f19a95; font-size: 9px; line-height: 1.35; }
 .subtitle-deleted { color: #82ddb0; font-size: 10px; font-weight: 800; }
+.admin-table-row.admin-movie-row { min-width: 930px; grid-template-columns: minmax(260px,1.5fr) minmax(130px,.7fr) 110px minmax(250px,.9fr); }
+.admin-movie-status { display: inline-flex; min-height: 24px; padding: 0 8px; border: 1px solid #343b47; border-radius: 999px; align-items: center; color: #aeb6c1; text-transform: capitalize; }
+.admin-movie-status.published { border-color: rgba(50,184,128,.35); background: rgba(50,184,128,.1); color: #82ddb0; }
+.movie-record-actions { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.movie-edit-button { min-width: 82px; min-height: 34px; padding: 0 11px; border: 1px solid rgba(230,163,73,.55); background: rgba(230,163,73,.08); color: #f0b75f; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 10px; font-weight: 800; }
+.movie-edit-button:hover { background: rgba(230,163,73,.16); }
+.movie-edit-button svg,.movie-publish-button svg,.movie-published svg { width: 14px; }
+.movie-publish-button { min-width: 105px; min-height: 34px; padding: 0 12px; border: 1px solid #d4943d; background: var(--accent); color: #171008; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; font-size: 10px; font-weight: 800; }
+.movie-publish-button:disabled,.movie-delete-button:disabled { cursor: wait; opacity: .55; }
+.movie-published { display: inline-flex; align-items: center; gap: 5px; color: #82ddb0; font-size: 10px; font-weight: 800; }
+.movie-delete-button { width: 34px; height: 34px; padding: 0; border: 1px solid rgba(225,91,85,.55); background: rgba(225,91,85,.08); color: #ef8883; display: grid; place-items: center; cursor: pointer; }
+.movie-delete-button:hover { background: rgba(225,91,85,.17); color: #ffaaa6; }
+.movie-delete-button svg { width: 14px; }
+.movie-action-error { flex-basis: 100%; max-width: 320px; color: #f19a95; font-size: 9px; line-height: 1.35; }
+.movie-archived { color: #82ddb0; font-size: 10px; font-weight: 800; }
 .subtitle-edit-backdrop { position: fixed; inset: 0; z-index: 500; padding: 28px; overflow-y: auto; background: rgba(2,4,8,.86); backdrop-filter: blur(8px); display: grid; place-items: start center; }
 .subtitle-edit-panel { width: min(100%,980px); margin: auto; border: 1px solid #353e4a; border-radius: 14px; background: #0d1117; box-shadow: 0 30px 100px rgba(0,0,0,.72); color: #eef1f5; }
 .subtitle-edit-panel>header { min-height: 76px; padding: 15px 18px; border-bottom: 1px solid #2a313b; background: #111720; display: flex; align-items: center; justify-content: space-between; }

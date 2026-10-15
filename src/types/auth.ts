@@ -26,6 +26,14 @@ export function canDeleteSubtitle(permissions: readonly Permission[]) {
   return permissions.includes('subtitles.delete');
 }
 
+export function canPublishMovie(permissions: readonly Permission[]) {
+  return permissions.includes('content.update') && permissions.includes('content.publish');
+}
+
+export function canArchiveMovie(permissions: readonly Permission[]) {
+  return permissions.includes('content.archive');
+}
+
 const allPermissions = [...PERMISSIONS];
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   super_admin: allPermissions,
