@@ -26,12 +26,13 @@ function hasUnsafeFilePath(fileName: string) {
     || normalized === '..';
 }
 
-export const presignUploadSchema = z.object({ kind: z.enum(uploadKinds), purpose: z.enum(['download', 'stream_master']).optional().default('download'), fileName: z.string().trim().min(1).max(240), contentType: z.string().trim().min(3).max(120), size: z.number().int().positive(), checksum: z.string().trim().max(128).optional(), linkedModel: z.string().trim().max(80).optional(), linkedId: z.string().trim().max(80).optional() }).superRefine((value,context)=>{
+export const presignUploadSchema = z.object({ kind: z.enum(uploadKinds), purpose: z.enum(['download', 'stream_master']).optional().default('download'), fileName: z.string().trim().min(1).max(240), contentType: z.string().trim().min(3).max(120), size: z.number().int().positive(), checksum: z.string().trim().max(128).optional(), linkedModel: z.string().trim().max(80).optional(), linkedId: z.string().trim().max(80).optional(), replacementFor: z.string().trim().regex(/^[a-f\d]{24}$/i).optional() }).superRefine((value,context)=>{
   if(hasUnsafeFilePath(value.fileName))context.addIssue({code:'custom',path:['fileName'],message:'File name must not contain a path or control characters.'});
   if(value.size>limits[value.kind])context.addIssue({code:'custom',path:['size'],message:`File exceeds the ${Math.round(limits[value.kind]/1_000_000)} MB limit for ${value.kind}.`});
   if(!accepted[value.kind].test(value.contentType))context.addIssue({code:'custom',path:['contentType'],message:`File type is not allowed for ${value.kind}.`});
   if(!extensions[value.kind].has(extensionOf(value.fileName)))context.addIssue({code:'custom',path:['fileName'],message:`File extension is not allowed for ${value.kind}.`});
   if(value.purpose==='stream_master'&&value.kind!=='media')context.addIssue({code:'custom',path:['purpose'],message:'Only media uploads can be streaming masters.'});
+  if(value.replacementFor&&value.kind!=='subtitle')context.addIssue({code:'custom',path:['replacementFor'],message:'Only subtitle uploads can replace a subtitle file.'});
 });
 
 export const multipartPartSchema = z.object({

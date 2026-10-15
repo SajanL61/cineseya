@@ -14,6 +14,12 @@ describe('upload validation', () => {
     expect(presignUploadSchema.safeParse({ kind: 'subtitle', fileName: 'release.zip', contentType: 'application/zip', size: 5_000_001 }).success).toBe(false);
   });
 
+  it('allows replacement tickets only for subtitle uploads', () => {
+    const replacementFor = '67abc123def4567890abc123';
+    expect(presignUploadSchema.safeParse({ kind: 'subtitle', fileName: 'release.srt', contentType: 'application/x-subrip', size: 1200, replacementFor }).success).toBe(true);
+    expect(presignUploadSchema.safeParse({ kind: 'poster', fileName: 'poster.png', contentType: 'image/png', size: 1200, replacementFor }).success).toBe(false);
+  });
+
   it('rejects paths and control characters while sanitizing safe display names', () => {
     expect(presignUploadSchema.safeParse({ kind: 'poster', fileName: '../poster.png', contentType: 'image/png', size: 1200 }).success).toBe(false);
     expect(presignUploadSchema.safeParse({ kind: 'poster', fileName: 'C:\\temp\\poster.png', contentType: 'image/png', size: 1200 }).success).toBe(false);

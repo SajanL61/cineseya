@@ -18,6 +18,10 @@ export function canPublishSubtitle(permissions: readonly Permission[]) {
   return permissions.includes('subtitles.update') && permissions.includes('subtitles.verify');
 }
 
+export function canEditSubtitle(permissions: readonly Permission[], status: string) {
+  return permissions.includes('subtitles.update') && (status !== 'published' || permissions.includes('subtitles.verify'));
+}
+
 const allPermissions = [...PERMISSIONS];
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   super_admin: allPermissions,

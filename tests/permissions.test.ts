@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canPublishSubtitle, ROLE_PERMISSIONS } from '../src/types/auth';
+import { canEditSubtitle, canPublishSubtitle, ROLE_PERMISSIONS } from '../src/types/auth';
 
 describe('role permissions', () => {
   it('keeps public users outside the admin boundary', () => {
@@ -27,5 +27,12 @@ describe('role permissions', () => {
     expect(canPublishSubtitle(['subtitles.update'])).toBe(false);
     expect(canPublishSubtitle(['subtitles.verify'])).toBe(false);
     expect(canPublishSubtitle(['subtitles.update', 'subtitles.verify'])).toBe(true);
+  });
+
+  it('requires verification permission before editing an already-published subtitle', () => {
+    expect(canEditSubtitle(ROLE_PERMISSIONS.editor, 'draft')).toBe(true);
+    expect(canEditSubtitle(ROLE_PERMISSIONS.editor, 'published')).toBe(false);
+    expect(canEditSubtitle(ROLE_PERMISSIONS.admin, 'published')).toBe(true);
+    expect(canEditSubtitle(ROLE_PERMISSIONS.viewer, 'draft')).toBe(false);
   });
 });

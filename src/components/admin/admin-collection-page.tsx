@@ -1,10 +1,10 @@
 import { ArrowRight, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { AdminRecordActions } from '@/components/admin/admin-record-actions';
-import { SubtitlePublishAction } from '@/components/admin/subtitle-publish-action';
+import { SubtitleRecordActions } from '@/components/admin/subtitle-record-actions';
 import { requirePagePermission } from '@/lib/auth';
 import { getAdminCollection, type ResourceKey } from '@/services/admin';
-import { canPublishSubtitle, type Permission } from '@/types/auth';
+import { canEditSubtitle, canPublishSubtitle, type Permission } from '@/types/auth';
 
 type Props = { resource: ResourceKey; title: string; description: string; permission: Permission; createHref?: string; query?: string; page?: number };
 const display = (value: unknown) => typeof value === 'boolean' ? (value ? 'Yes' : 'No') : Array.isArray(value) ? value.join(', ') : value && typeof value === 'object' ? JSON.stringify(value) : String(value ?? '—');
@@ -33,7 +33,7 @@ export async function AdminCollectionPage({ resource, title, description, permis
           <span>{resource === 'subtitles' ? <span className={`admin-subtitle-status ${status}`}>{status || 'Unknown'}</span> : display(status)}</span>
           <time>{item.updatedAt || item.createdAt ? new Date(String(item.updatedAt || item.createdAt)).toLocaleDateString('en-LK') : '—'}</time>
           {resource === 'subtitles'
-            ? <SubtitlePublishAction subtitleId={id} fileName={recordTitle} language={detail} contentTitle={String(item.contentTitle ?? 'Unknown linked content')} contentType={item.contentType === 'episode' ? 'episode' : 'movie'} status={status} canPublish={canPublish}/>
+            ? <SubtitleRecordActions subtitleId={id} fileName={recordTitle} language={detail} contentTitle={String(item.contentTitle ?? 'Unknown linked content')} contentType={item.contentType === 'episode' ? 'episode' : 'movie'} status={status} canEdit={canEditSubtitle(session.user.permissions, status)} canPublish={canPublish}/>
             : editHref
               ? <Link href={editHref} aria-label={`Open ${recordTitle}`}><ArrowRight/></Link>
               : <AdminRecordActions resource={resource} id={id} currentStatus={item.status ? String(item.status) : undefined} currentRole={item.role ? String(item.role) : undefined} active={item.active !== false} canUpdate={resource === 'users' ? canUpdateUsers : canModerate} canChangeRole={resource === 'users' && session.user.permissions.includes('users.roles')}/>}
