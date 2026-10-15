@@ -35,4 +35,12 @@ describe('role permissions', () => {
     expect(canEditSubtitle(ROLE_PERMISSIONS.admin, 'published')).toBe(true);
     expect(canEditSubtitle(ROLE_PERMISSIONS.viewer, 'draft')).toBe(false);
   });
+
+  it('limits advertising configuration writes to settings administrators', () => {
+    expect(ROLE_PERMISSIONS.super_admin).toContain('settings.update');
+    expect(ROLE_PERMISSIONS.admin).toContain('settings.update');
+    expect(ROLE_PERMISSIONS.editor).not.toContain('settings.update');
+    expect(ROLE_PERMISSIONS.translator).not.toContain('settings.update');
+    expect(ROLE_PERMISSIONS.viewer).not.toContain('settings.update');
+  });
 });

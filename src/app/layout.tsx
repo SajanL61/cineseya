@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 import { PwaRegister } from '@/components/pwa/pwa-register';
 import { siteUrl } from '@/lib/env';
+import { NonceJsonLd } from '@/components/seo/nonce-json-ld';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -20,5 +21,5 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, them
 export default function RootLayout({ children }: { children: ReactNode }) {
   const organization = { '@context': 'https://schema.org', '@type': 'Organization', name: 'CineSeya.lk', url: siteUrl };
   const website = { '@context': 'https://schema.org', '@type': 'WebSite', name: 'CineSeya.lk', url: siteUrl, potentialAction: { '@type': 'SearchAction', target: `${siteUrl}/search?q={search_term_string}`, 'query-input': 'required name=search_term_string' } };
-  return <html lang="en" data-scroll-behavior="smooth"><body><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization).replaceAll('<', '\\u003c') }} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(website).replaceAll('<', '\\u003c') }} /><PwaRegister />{children}</body></html>;
+  return <html lang="en" data-scroll-behavior="smooth"><body><NonceJsonLd value={organization}/><NonceJsonLd value={website}/><PwaRegister />{children}</body></html>;
 }
