@@ -10,7 +10,8 @@ const configuredUrl = (name: string) => {
 const assetUrl = configuredUrl('PUBLIC_ASSET_DOMAIN');
 const downloadUrl = configuredUrl('DOWNLOAD_DOMAIN');
 const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
-const imageSources = ["'self'", 'data:', 'blob:', 'https://image.tmdb.org', assetUrl?.origin].filter(Boolean).join(' ');
+const cineseyaAssetOrigin = 'https://assets.cineseya.lk';
+const imageSources = ["'self'", 'data:', 'blob:', 'https://image.tmdb.org', cineseyaAssetOrigin, assetUrl?.origin].filter(Boolean).join(' ');
 const connectSources = ["'self'", 'https://*.r2.cloudflarestorage.com', downloadUrl?.origin, turnstileEnabled ? 'https://challenges.cloudflare.com' : undefined].filter(Boolean).join(' ');
 const mediaSources = ["'self'", 'blob:', 'https://*.r2.cloudflarestorage.com', downloadUrl?.origin].filter(Boolean).join(' ');
 
@@ -51,8 +52,9 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
+      { protocol: 'https', hostname: 'assets.cineseya.lk', pathname: '/**' },
       { protocol: 'https', hostname: 'image.tmdb.org', pathname: '/t/p/**' },
-      ...(assetUrl ? [{ protocol: 'https' as const, hostname: assetUrl.hostname, port: assetUrl.port, pathname: '/**' }] : []),
+      ...(assetUrl && assetUrl.hostname !== 'assets.cineseya.lk' ? [{ protocol: 'https' as const, hostname: assetUrl.hostname, port: assetUrl.port, pathname: '/**' }] : []),
     ],
   },
   async headers() {

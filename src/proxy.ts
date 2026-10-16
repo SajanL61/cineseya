@@ -13,7 +13,7 @@ function contentSecurityPolicy(nonce: string, admin: boolean) {
   const assetOrigin = httpsOrigin('PUBLIC_ASSET_DOMAIN');
   const downloadOrigin = httpsOrigin('DOWNLOAD_DOMAIN');
   const turnstile = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
-  const images = ["'self'", 'data:', 'blob:', 'https://image.tmdb.org', assetOrigin].filter(Boolean).join(' ');
+  const images = ["'self'", 'data:', 'blob:', 'https://image.tmdb.org', 'https://assets.cineseya.lk', assetOrigin].filter(Boolean).join(' ');
   const media = ["'self'", 'blob:', 'https://*.r2.cloudflarestorage.com', downloadOrigin].filter(Boolean).join(' ');
   const connect = ["'self'", 'https://*.r2.cloudflarestorage.com', downloadOrigin, turnstile ? 'https://challenges.cloudflare.com' : undefined];
   const frames = ['https://www.youtube-nocookie.com', turnstile ? 'https://challenges.cloudflare.com' : undefined];
