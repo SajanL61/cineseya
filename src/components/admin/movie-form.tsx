@@ -12,7 +12,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import {
+  useState,
+  type ClipboardEvent,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { ArtworkField } from "@/components/admin/artwork-field";
 import { TmdbImporter } from "@/components/admin/tmdb-importer";
 import { readCsrfToken } from "@/lib/client/browser-brand";
@@ -48,6 +53,72 @@ const parseCredits = (value: string, key: "character" | "role") =>
           .replace(/^-|-$/g, "") || `person-${index + 1}`;
       return { name, slug, [key]: details.join(" | ") || undefined };
     });
+const addMissingCreditSeparators = (value: string) =>
+  value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => {
+      const credit = line.trim();
+      return credit && !credit.includes("|") ? `${credit} | ` : line;
+    })
+    .join("\n");
+function creditLineAt(textarea: HTMLTextAreaElement) {
+  const start = textarea.value.lastIndexOf("\n", textarea.selectionStart - 1) + 1;
+  const nextBreak = textarea.value.indexOf("\n", textarea.selectionEnd);
+  const end = nextBreak === -1 ? textarea.value.length : nextBreak;
+  return { start, end, value: textarea.value.slice(start, end) };
+}
+function handleCreditKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+  if (
+    event.key !== "Enter" ||
+    event.shiftKey ||
+    event.ctrlKey ||
+    event.altKey ||
+    event.metaKey ||
+    event.nativeEvent.isComposing
+  )
+    return;
+  const textarea = event.currentTarget;
+  const line = creditLineAt(textarea);
+  if (
+    textarea.selectionStart !== textarea.selectionEnd ||
+    textarea.selectionStart !== line.end ||
+    !line.value.trim() ||
+    line.value.includes("|")
+  )
+    return;
+  event.preventDefault();
+  textarea.setRangeText(
+    `${line.value.trimEnd()} | `,
+    line.start,
+    line.end,
+    "end",
+  );
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
+function handleCreditPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+  const pasted = event.clipboardData.getData("text/plain");
+  if (!pasted) return;
+  const textarea = event.currentTarget;
+  const line = creditLineAt(textarea);
+  const replacesWholeLine =
+    textarea.selectionStart === line.start && textarea.selectionEnd === line.end;
+  if (
+    line.value.includes("|") ||
+    (!/[\r\n]/.test(pasted) && line.value.trim() && !replacesWholeLine)
+  )
+    return;
+  const formatted = addMissingCreditSeparators(pasted);
+  if (formatted === pasted) return;
+  event.preventDefault();
+  textarea.setRangeText(
+    formatted,
+    textarea.selectionStart,
+    textarea.selectionEnd,
+    "end",
+  );
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
 const date = (value: unknown) =>
   value ? new Date(String(value)).toISOString().slice(0, 10) : "";
 const dateTime = (value: unknown) =>
@@ -412,8 +483,12 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
               rows={5}
               placeholder="Performer | Character"
               defaultValue={credits(initial?.cast, "character")}
+              onKeyDown={handleCreditKeyDown}
+              onPaste={handleCreditPaste}
             />
-            <small>One credit per line</small>
+            <small>
+              One credit per line. Press Enter after a name to add | automatically.
+            </small>
           </label>
           <label className="span-2">
             Crew
@@ -422,8 +497,12 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
               rows={5}
               placeholder="Person | Director"
               defaultValue={credits(initial?.crew, "role")}
+              onKeyDown={handleCreditKeyDown}
+              onPaste={handleCreditPaste}
             />
-            <small>One credit per line</small>
+            <small>
+              One credit per line. Press Enter after a name to add | automatically.
+            </small>
           </label>
           <ArtworkField
             kind="poster"
