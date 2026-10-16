@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cineseya-shell-v3';
+const CACHE_NAME = 'cineseya-shell-v4';
 const APP_SHELL = ['/', '/movies', '/tv', '/subtitles', '/discover', '/offline', '/brand/cineseya-icon.png'];
 
 self.addEventListener('install', (event) => {
@@ -18,6 +18,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/download/') || url.pathname.startsWith('/watch/')) return;
+  // Next.js static assets are content-hashed and already carry immutable browser caching headers.
+  // Leaving them outside the service-worker cache prevents old CSS/JS bundles from being mixed with new HTML.
+  if (url.pathname.startsWith('/_next/static/')) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
@@ -31,7 +34,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/brand/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/media/')) {
+  if (url.pathname.startsWith('/brand/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/media/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
