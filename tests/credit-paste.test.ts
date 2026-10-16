@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  addTmdbPersonIdsToCredits,
   dedupeCreditLines,
-  extractTmdbPersonIds,
   formatCreditPaste,
+  profileImageUrlFrom,
 } from "../src/lib/client/credit-paste";
 
 describe("formatCreditPaste", () => {
@@ -46,7 +45,7 @@ describe("formatCreditPaste", () => {
     );
   });
 
-  it("removes TMDB image links and duplicate linked names", () => {
+  it("removes copied image links and duplicate linked names", () => {
     const copied = `1. [Zachary Levi](https://www.themoviedb.org/person/69899-zachary-levi)
 
    &#x20;([image](https://media.themoviedb.org/t/p/w66_and_h66_face/zachary.jpg))
@@ -63,22 +62,11 @@ describe("formatCreditPaste", () => {
    Larry`;
 
     expect(formatCreditPaste(copied, "cast")).toBe(
-      "Zachary Levi | Tucker | 69899\nLiam Neeson | Larry | 3896",
+      "Zachary Levi | Tucker\nLiam Neeson | Larry",
     );
   });
 
-  it("keeps person IDs from TMDB HTML clipboard links", () => {
-    const html = `<a href="https://www.themoviedb.org/person/69899-zachary-levi"><img alt="Zachary Levi"></a><a href="/person/69899-zachary-levi"><bdi>Zachary Levi</bdi></a>`;
-    const formatted = formatCreditPaste(
-      "Zachary Levi\nZachary Levi\nTucker",
-      "cast",
-    );
-    expect(
-      addTmdbPersonIdsToCredits(formatted, extractTmdbPersonIds(html)),
-    ).toBe("Zachary Levi | Tucker | 69899");
-  });
-
-  it("ignores standalone image labels between duplicate TMDB names", () => {
+  it("ignores standalone image labels between duplicate names", () => {
     expect(
       formatCreditPaste(
         "Zachary Levi\nimage\nZachary Levi\nTucker\nLiam Neeson\nphoto\nLiam Neeson\nLarry",
@@ -95,12 +83,29 @@ describe("formatCreditPaste", () => {
     ).toBe("Zachary Levi | Tucker\nLiam Neeson | Larry");
   });
 
-  it("upgrades an existing credit when a repeated paste includes a person ID", () => {
+  it("upgrades an existing credit when a repeated line includes an R2 image", () => {
     expect(
       dedupeCreditLines(
-        "Zachary Levi | Tucker\nZachary Levi | Tucker | 69899",
+        "Zachary Levi | Tucker\nZachary Levi | Tucker | https://assets.cineseya.lk/people/Zachary%20Levi.png",
       ),
-    ).toBe("Zachary Levi | Tucker | 69899");
+    ).toBe(
+      "Zachary Levi | Tucker | https://assets.cineseya.lk/people/Zachary%20Levi.png",
+    );
+  });
+
+  it("removes a legacy numeric person ID without changing the role", () => {
+    expect(dedupeCreditLines("Zachary Levi | Tucker | 69899")).toBe(
+      "Zachary Levi | Tucker",
+    );
+  });
+
+  it("accepts only HTTPS text as an optional profile image column", () => {
+    expect(
+      profileImageUrlFrom(
+        "https://assets.cineseya.lk/people/Zachary Levi.png",
+      ),
+    ).toBe("https://assets.cineseya.lk/people/Zachary%20Levi.png");
+    expect(profileImageUrlFrom("69899")).toBeUndefined();
   });
 
   it("preserves non-Latin names while removing their duplicates", () => {

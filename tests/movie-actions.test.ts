@@ -42,19 +42,17 @@ describe('movie table actions', () => {
     ]);
   });
 
-  it('accepts a TMDB person ID and trusted TMDB profile image', () => {
+  it('accepts a trusted CineSeya R2 profile image', () => {
     expect(adminCreditListSchema.parse([{
       name: 'Zachary Levi',
       slug: 'zachary-levi',
       character: 'Tucker',
-      tmdbPersonId: '69899',
-      profileUrl: 'https://image.tmdb.org/t/p/w185/profile.jpg',
+      profileUrl: 'https://assets.cineseya.lk/people/zachary-levi.png',
     }])).toEqual([{
       name: 'Zachary Levi',
       slug: 'zachary-levi',
       character: 'Tucker',
-      tmdbPersonId: '69899',
-      profileUrl: 'https://image.tmdb.org/t/p/w185/profile.jpg',
+      profileUrl: 'https://assets.cineseya.lk/people/zachary-levi.png',
     }]);
   });
 
@@ -62,7 +60,6 @@ describe('movie table actions', () => {
     expect(() => adminCreditListSchema.parse([{
       name: 'Zachary Levi',
       slug: 'zachary-levi',
-      tmdbPersonId: '69899',
       profileUrl: 'https://example.com/profile.jpg',
     }])).toThrow();
   });

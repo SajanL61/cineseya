@@ -19,14 +19,11 @@ import {
   type KeyboardEvent,
 } from "react";
 import { ArtworkField } from "@/components/admin/artwork-field";
-import { TmdbImporter } from "@/components/admin/tmdb-importer";
 import { readCsrfToken } from "@/lib/client/browser-brand";
 import {
-  addTmdbPersonIdsToCredits,
   dedupeCreditLines,
-  extractTmdbPersonIds,
   formatCreditPaste,
-  tmdbPersonIdFrom,
+  profileImageUrlFrom,
 } from "@/lib/client/credit-paste";
 
 type InitialMovie = Record<string, unknown> & {
@@ -40,8 +37,11 @@ const credits = (value: unknown, key: "character" | "role") =>
     ? value
         .map((item) => {
           const row = item as Record<string, unknown>;
-          const personId = String(row.tmdbPersonId ?? "").trim();
-          return `${String(row.name ?? "")} | ${String(row[key] ?? "")}${personId ? ` | ${personId}` : ""}`;
+          const profileUrl = String(row.profileUrl ?? "").trim();
+          const detail = String(row[key] ?? "")
+            .replace(/\s*\|\s*\d+\s*$/, "")
+            .trim();
+          return `${String(row.name ?? "")} | ${detail}${profileUrl ? ` | ${profileUrl}` : ""}`;
         })
         .join("\n")
     : "";
@@ -52,11 +52,11 @@ const parseCredits = (value: string, key: "character" | "role") =>
     .filter(Boolean)
     .map((line, index) => {
       const [name, ...details] = line.split("|").map((part) => part.trim());
-      const tmdbPersonId =
+      const profileUrl =
         details.length >= 2
-          ? tmdbPersonIdFrom(details.at(-1) ?? "")
+          ? profileImageUrlFrom(details.at(-1) ?? "")
           : undefined;
-      if (tmdbPersonId) details.pop();
+      if (profileUrl) details.pop();
       const slug =
         name
           .normalize("NFKD")
@@ -68,7 +68,7 @@ const parseCredits = (value: string, key: "character" | "role") =>
         name,
         slug,
         [key]: details.join(" | ") || undefined,
-        tmdbPersonId,
+        profileUrl,
       };
     });
 function creditLineAt(textarea: HTMLTextAreaElement) {
@@ -121,10 +121,7 @@ function handleCreditPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
     pasted,
     textarea.name === "crew" ? "crew" : "cast",
   );
-  const formatted = addTmdbPersonIdsToCredits(
-    formattedText,
-    extractTmdbPersonIds(event.clipboardData.getData("text/html")),
-  );
+  const formatted = formattedText;
   const combined = `${textarea.value.slice(0, textarea.selectionStart)}${formatted}${textarea.value.slice(textarea.selectionEnd)}`;
   const unique = dedupeCreditLines(combined);
   if (formatted === pasted && unique === combined) return;
@@ -216,9 +213,7 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
       },
       trailerUrl: value("trailerUrl"),
       imdbId: value("imdbId"),
-      tmdbId: value("tmdbId"),
       imdbRating: number("imdbRating"),
-      tmdbRating: number("tmdbRating"),
       rightsStatus: value("rightsStatus"),
       publicationStatus: value("publicationStatus"),
       releaseStatus: value("releaseStatus"),
@@ -322,7 +317,6 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
           {message}
         </p>
       )}
-      <TmdbImporter />
       <details open>
         <summary>
           <span>1</span>Core details
@@ -499,14 +493,14 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
             <textarea
               name="cast"
               rows={5}
-              placeholder="Performer | Character | TMDB Person ID"
+              placeholder="Performer | Character | R2 profile image URL"
               defaultValue={credits(initial?.cast, "character")}
               onKeyDown={handleCreditKeyDown}
               onPaste={handleCreditPaste}
             />
             <small>
-              Name | Character | optional TMDB Person ID. TMDB-linked pastes
-              can add the ID automatically.
+              Name | Character | optional R2 profile image URL. Smart paste
+              and duplicate prevention remain enabled.
             </small>
           </label>
           <label className="span-2">
@@ -514,14 +508,14 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
             <textarea
               name="crew"
               rows={5}
-              placeholder="Person | Job | TMDB Person ID"
+              placeholder="Person | Job | R2 profile image URL"
               defaultValue={credits(initial?.crew, "role")}
               onKeyDown={handleCreditKeyDown}
               onPaste={handleCreditPaste}
             />
             <small>
-              Name | Job | optional TMDB Person ID. TMDB-linked pastes can add
-              the ID automatically.
+              Name | Job | optional R2 profile image URL. Smart paste and
+              duplicate prevention remain enabled.
             </small>
           </label>
           <ArtworkField
@@ -579,10 +573,6 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
             />
           </label>
           <label>
-            TMDb ID
-            <input name="tmdbId" defaultValue={String(initial?.tmdbId || "")} />
-          </label>
-          <label>
             IMDb rating
             <input
               name="imdbRating"
@@ -591,17 +581,6 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
               min={0}
               max={10}
               defaultValue={String(initial?.imdbRating ?? "")}
-            />
-          </label>
-          <label>
-            TMDb rating
-            <input
-              name="tmdbRating"
-              type="number"
-              step="0.1"
-              min={0}
-              max={10}
-              defaultValue={String(initial?.tmdbRating ?? "")}
             />
           </label>
         </div>

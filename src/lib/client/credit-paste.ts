@@ -31,58 +31,15 @@ const normalizeCreditName = (value: string) =>
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 
-export function tmdbPersonIdFrom(value: string) {
+export function profileImageUrlFrom(value: string) {
   const trimmed = value.trim();
-  if (/^\d+$/.test(trimmed)) return trimmed;
-  return trimmed.match(/themoviedb\.org\/person\/(\d+)/i)?.[1];
-}
-
-function linkedName(value: string) {
-  return value
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\*\*|__|`/g, "")
-    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) =>
-      String.fromCodePoint(Number.parseInt(code, 16)),
-    )
-    .replace(/&#(\d+);/g, (_, code: string) =>
-      String.fromCodePoint(Number.parseInt(code, 10)),
-    )
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-export function extractTmdbPersonIds(value: string) {
-  const people: Record<string, string> = {};
-  const add = (rawName: string, personId: string) => {
-    const name = linkedName(rawName);
-    const key = normalizeCreditName(name);
-    if (key && !ignoredVisualLabel.test(name)) people[key] = personId;
-  };
-  const markdown = /\[([^\]]+)\]\([^)]*themoviedb\.org\/person\/(\d+)[^)]*\)/gi;
-  for (const match of value.matchAll(markdown)) add(match[1], match[2]);
-  const html = /<a\b[^>]*href=["'][^"']*\/person\/(\d+)[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
-  for (const match of value.matchAll(html)) add(match[2], match[1]);
-  return people;
-}
-
-export function addTmdbPersonIdsToCredits(
-  value: string,
-  people: Record<string, string>,
-) {
-  return value
-    .split("\n")
-    .map((line) => {
-      const parts = line.split("|").map((part) => part.trim());
-      const personId = people[normalizeCreditName(parts[0] ?? "")];
-      const hasPersonId =
-        parts.length >= 3 && Boolean(tmdbPersonIdFrom(parts.at(-1) ?? ""));
-      return personId && !hasPersonId ? `${line.trim()} | ${personId}` : line;
-    })
-    .join("\n");
+  if (!trimmed) return undefined;
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "https:" ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function cleanCopiedLine(line: string) {
@@ -102,51 +59,63 @@ function cleanCopiedLine(line: string) {
 }
 
 export function dedupeCreditLines(value: string) {
-  const credits: string[] = [];
+  const credits: Array<{
+    name: string;
+    detail: string;
+    hasDetailColumn: boolean;
+    profileUrl?: string;
+  }> = [];
   const positions = new Map<string, number>();
   for (const rawLine of value.replace(/\r\n?/g, "\n").split("\n")) {
     const line = rawLine.trim();
     if (!line) continue;
     const [rawName, ...rawDetails] = line.split("|");
     const name = rawName.trim();
-    const nextPersonId =
+    const profileUrl =
       rawDetails.length >= 2
-        ? tmdbPersonIdFrom(rawDetails.at(-1) ?? "")
+        ? profileImageUrlFrom(rawDetails.at(-1) ?? "")
         : undefined;
-    if (nextPersonId) rawDetails.pop();
+    if (profileUrl) rawDetails.pop();
+    if (
+      rawDetails.length >= 2 &&
+      /^\d+$/.test(rawDetails.at(-1)?.trim() ?? "")
+    )
+      rawDetails.pop();
     const detail = rawDetails.join(" | ").trim();
     const key = normalizeCreditName(name);
     if (!key) continue;
-    const formatted = rawDetails.length
-      ? `${name} | ${detail}${nextPersonId ? ` | ${nextPersonId}` : ""}`
-      : name;
     const existingPosition = positions.get(key);
     if (existingPosition === undefined) {
       positions.set(key, credits.length);
-      credits.push(formatted);
+      credits.push({
+        name,
+        detail,
+        hasDetailColumn: rawDetails.length > 0,
+        profileUrl,
+      });
       continue;
     }
-    const [, ...existingDetails] = credits[existingPosition].split("|");
-    const existingPersonId =
-      existingDetails.length >= 2
-        ? tmdbPersonIdFrom(existingDetails.at(-1) ?? "")
-        : undefined;
-    if (existingPersonId) existingDetails.pop();
-    const existingDetail = existingDetails.join(" | ").trim();
+    const existing = credits[existingPosition];
     const existingIsUseful =
-      existingDetail &&
-      normalizeCreditName(existingDetail) !== key &&
-      !ignoredVisualLabel.test(existingDetail);
+      existing.detail &&
+      normalizeCreditName(existing.detail) !== key &&
+      !ignoredVisualLabel.test(existing.detail);
     const nextIsUseful =
       detail &&
       normalizeCreditName(detail) !== key &&
       !ignoredVisualLabel.test(detail);
-    if (!existingIsUseful && nextIsUseful)
-      credits[existingPosition] = `${name} | ${detail}${nextPersonId ? ` | ${nextPersonId}` : ""}`;
-    else if (!existingPersonId && nextPersonId)
-      credits[existingPosition] = `${credits[existingPosition].trim()} | ${nextPersonId}`;
+    if (!existingIsUseful && nextIsUseful) {
+      existing.detail = detail;
+      existing.hasDetailColumn = true;
+    }
+    if (!existing.profileUrl && profileUrl) existing.profileUrl = profileUrl;
   }
-  return credits.join("\n");
+  return credits
+    .map(
+      ({ name, detail, hasDetailColumn, profileUrl }) =>
+        `${name}${hasDetailColumn ? ` | ${detail}` : ""}${profileUrl ? ` | ${profileUrl}` : ""}`,
+    )
+    .join("\n");
 }
 
 function copiedLines(value: string, kind: CreditKind) {
@@ -167,22 +136,18 @@ function copiedLines(value: string, kind: CreditKind) {
 }
 
 export function formatCreditPaste(value: string, kind: CreditKind) {
-  const people = extractTmdbPersonIds(value);
   const lines = copiedLines(value, kind);
   if (!lines.length) return "";
   if (lines.some((line) => line.includes("|")))
-    return addTmdbPersonIdsToCredits(
-      dedupeCreditLines(
-        lines
-          .filter(
-            (line) =>
-              kind !== "crew" ||
-              !crewDepartments.has(line.toLocaleLowerCase()),
-          )
-          .map((line) => (line.includes("|") ? line : `${line} | `))
-          .join("\n"),
-      ),
-      people,
+    return dedupeCreditLines(
+      lines
+        .filter(
+          (line) =>
+            kind !== "crew" ||
+            !crewDepartments.has(line.toLocaleLowerCase()),
+        )
+        .map((line) => (line.includes("|") ? line : `${line} | `))
+        .join("\n"),
     );
 
   const credits: string[] = [];
@@ -200,8 +165,5 @@ export function formatCreditPaste(value: string, kind: CreditKind) {
     const detail = lines[index++] ?? "";
     credits.push(`${name} | ${detail}`);
   }
-  return addTmdbPersonIdsToCredits(
-    dedupeCreditLines(credits.join("\n")),
-    people,
-  );
+  return dedupeCreditLines(credits.join("\n"));
 }

@@ -33,7 +33,6 @@ const envSchema = z.object({
   TRANSCODE_SEGMENT_SECONDS: z.coerce.number().int().min(4).max(10).default(6),
   TRANSCODE_POLL_INTERVAL_MS: z.coerce.number().int().min(1_000).max(60_000).default(5_000),
   STREAM_SESSION_TTL_SECONDS: z.coerce.number().int().min(900).max(43_200).default(14_400),
-  TMDB_API_TOKEN: z.string().optional(),
   TURNSTILE_SECRET_KEY: z.string().optional(),
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().optional(),
 });
