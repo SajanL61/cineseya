@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cineseya-shell-v2';
+const CACHE_NAME = 'cineseya-shell-v3';
 const APP_SHELL = ['/', '/movies', '/tv', '/subtitles', '/discover', '/offline', '/brand/cineseya-icon.png'];
 
 self.addEventListener('install', (event) => {
@@ -32,6 +32,13 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/brand/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/media/')) {
-    event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+          return response;
+        })
+        .catch(() => caches.match(request)),
+    );
   }
 });
