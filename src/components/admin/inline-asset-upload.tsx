@@ -22,8 +22,8 @@ export function InlineAssetUpload({
   onSelected,
   onUploaded,
 }: {
-  kind: "poster" | "backdrop";
-  linkedModel?: "Movie" | "Series";
+  kind: "poster" | "backdrop" | "avatar";
+  linkedModel?: "Movie" | "Series" | "TranslatorProfile";
   linkedId?: string;
   onSelected?: (file: File, metadata: ArtworkMetadata) => void;
   onUploaded: (asset: CompletedUploadAsset) => void;
