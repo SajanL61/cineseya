@@ -20,7 +20,7 @@ export function TrailerDialog({ title, url, variant = 'button' }: { title: strin
   if (!embedUrl) return null;
 
   return <>
-    <button className={variant === 'icon' ? 'trailer-icon' : 'action-button secondary'} onClick={() => setOpen(true)}><Play />{variant === 'button' && 'Watch Trailer'}</button>
+    <button className={variant === 'icon' ? 'trailer-icon' : 'action-button secondary trailer-button'} onClick={() => setOpen(true)}><Play />{variant === 'button' && 'Watch Trailer'}</button>
     {open && <div className="trailer-backdrop" role="dialog" aria-modal="true" aria-label={`${title} trailer`} onMouseDown={(event) => event.target === event.currentTarget && setOpen(false)}>
       <div className="trailer-dialog"><header><span>{title}</span><button ref={closeRef} aria-label="Close trailer" onClick={() => setOpen(false)}><X /></button></header><div><iframe src={embedUrl} title={`${title} trailer`} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen /></div></div>
     </div>}
