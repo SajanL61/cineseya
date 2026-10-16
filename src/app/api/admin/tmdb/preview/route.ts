@@ -9,7 +9,7 @@ const responseSchema = z.object({
   imdb_id: z.string().nullable().optional(), vote_average: z.number().optional(), poster_path: z.string().nullable().optional(), backdrop_path: z.string().nullable().optional(),
   genres: z.array(z.object({ name: z.string() })).default([]), spoken_languages: z.array(z.object({ english_name: z.string().optional(), name: z.string() })).default([]),
   production_countries: z.array(z.object({ name: z.string() })).default([]),
-  credits: z.object({ cast: z.array(z.object({ name: z.string(), character: z.string().optional() })).default([]), crew: z.array(z.object({ name: z.string(), job: z.string().optional() })).default([]) }).optional(),
+  credits: z.object({ cast: z.array(z.object({ id: z.number().int().positive(), name: z.string(), character: z.string().optional(), profile_path: z.string().nullable().optional() })).default([]), crew: z.array(z.object({ id: z.number().int().positive(), name: z.string(), job: z.string().optional(), profile_path: z.string().nullable().optional() })).default([]) }).optional(),
   videos: z.object({ results: z.array(z.object({ site: z.string(), type: z.string(), key: z.string(), official: z.boolean().optional() })).default([]) }).optional(),
 });
 
@@ -38,8 +38,8 @@ export async function GET(request: Request) {
       posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w780${movie.poster_path}` : undefined,
       backdropUrl: movie.backdrop_path ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}` : undefined,
       trailerUrl: trailer ? `https://www.youtube-nocookie.com/embed/${trailer.key}` : undefined, imdbId: movie.imdb_id ?? undefined,
-      tmdbId: String(movie.id), tmdbRating: movie.vote_average, cast: movie.credits?.cast.slice(0, 20).map((item) => `${item.name} | ${item.character ?? 'Cast'}`) ?? [],
-      crew: movie.credits?.crew.filter((item) => ['Director','Writer','Screenplay','Producer'].includes(item.job ?? '')).slice(0, 20).map((item) => `${item.name} | ${item.job}`) ?? [],
+      tmdbId: String(movie.id), tmdbRating: movie.vote_average, cast: movie.credits?.cast.slice(0, 20).map((item) => `${item.name} | ${item.character ?? 'Cast'} | ${item.id}`) ?? [],
+      crew: movie.credits?.crew.filter((item) => ['Director','Writer','Screenplay','Producer'].includes(item.job ?? '')).slice(0, 20).map((item) => `${item.name} | ${item.job} | ${item.id}`) ?? [],
       suggestedSlug: titleSlug ? `${titleSlug}${releaseYear ? `-${releaseYear}` : ''}` : undefined,
     } }, { headers: { 'Cache-Control': 'private, no-store' } });
   } catch (error) { return apiError(error); }

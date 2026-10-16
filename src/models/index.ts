@@ -10,7 +10,7 @@ const objectKey = { type: String, trim: true };
 const publication = { type: String, enum: ['draft', 'scheduled', 'published', 'archived'], default: 'draft', index: true };
 const rights = { type: String, enum: RIGHTS_STATUSES, required: true, default: 'subtitle_only', index: true };
 const personCreditSchema = new Schema(
-  { name: { type: String, required: true }, slug: { type: String, required: true }, role: String, character: String, profileKey: String },
+  { name: { type: String, required: true }, slug: { type: String, required: true }, role: String, character: String, tmdbPersonId: String, profileKey: String, profileUrl: String },
   { _id: false },
 );
 const focalPointSchema = new Schema(

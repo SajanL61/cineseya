@@ -3,7 +3,8 @@ import { RIGHTS_STATUSES } from '@/types/content';
 
 const optionalUrl = z.union([z.literal(''), z.url()]).optional();
 const focalPoint = z.object({ x: z.coerce.number().min(0).max(100), y: z.coerce.number().min(0).max(100) }).strict();
-const credit = z.object({ name: z.string().trim().min(1).max(160), slug: z.string().trim().min(1).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), role: z.string().trim().max(120).optional(), character: z.string().trim().max(160).optional() });
+const tmdbProfileUrl = z.url().refine((value) => { const url = new URL(value); return url.protocol === 'https:' && url.hostname === 'image.tmdb.org' && url.pathname.startsWith('/t/p/'); }, 'Use a valid TMDB profile image URL.');
+const credit = z.object({ name: z.string().trim().min(1).max(160), slug: z.string().trim().min(1).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), role: z.string().trim().max(120).optional(), character: z.string().trim().max(160).optional(), tmdbPersonId: z.string().trim().max(20).regex(/^\d+$/).optional(), profileUrl: tmdbProfileUrl.optional() });
 export const adminCreditListSchema = z.array(credit).max(100).transform((credits) => { const names = new Set<string>(); return credits.filter((item) => { const name = item.name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); if (names.has(name)) return false; names.add(name); return true; }); }).default([]);
 export const moviePublicationPatchSchema = z.object({ publicationStatus: z.literal('published') }).strict();
 export const adminMovieSchema = z.object({

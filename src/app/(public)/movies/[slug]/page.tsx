@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Download, ExternalLink, Play, ShieldAlert, Star } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ShareButton } from "@/components/movie/share-dialog";
 import { TrailerDialog } from "@/components/movie/trailer-dialog";
@@ -472,12 +473,22 @@ export default async function MovieDetailPage({
                     href={`/person/${credit.slug}`}
                     key={`${credit.slug}-${index}`}
                   >
-                    <span>
-                      {credit.name
-                        .split(" ")
-                        .map((word) => word[0])
-                        .join("")
-                        .slice(0, 2)}
+                    <span className={credit.profileUrl ? "has-image" : undefined}>
+                      {credit.profileUrl ? (
+                        <Image
+                          src={credit.profileUrl}
+                          alt={`${credit.name} profile`}
+                          width={56}
+                          height={56}
+                          sizes="56px"
+                        />
+                      ) : (
+                        credit.name
+                          .split(" ")
+                          .map((word) => word[0])
+                          .join("")
+                          .slice(0, 2)
+                      )}
                     </span>
                     <b>{credit.name}</b>
                     <small>{credit.character ?? credit.role ?? "Cast"}</small>

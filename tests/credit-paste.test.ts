@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  addTmdbPersonIdsToCredits,
   dedupeCreditLines,
+  extractTmdbPersonIds,
   formatCreditPaste,
 } from "../src/lib/client/credit-paste";
 
@@ -61,8 +63,19 @@ describe("formatCreditPaste", () => {
    Larry`;
 
     expect(formatCreditPaste(copied, "cast")).toBe(
-      "Zachary Levi | Tucker\nLiam Neeson | Larry",
+      "Zachary Levi | Tucker | 69899\nLiam Neeson | Larry | 3896",
     );
+  });
+
+  it("keeps person IDs from TMDB HTML clipboard links", () => {
+    const html = `<a href="https://www.themoviedb.org/person/69899-zachary-levi"><img alt="Zachary Levi"></a><a href="/person/69899-zachary-levi"><bdi>Zachary Levi</bdi></a>`;
+    const formatted = formatCreditPaste(
+      "Zachary Levi\nZachary Levi\nTucker",
+      "cast",
+    );
+    expect(
+      addTmdbPersonIdsToCredits(formatted, extractTmdbPersonIds(html)),
+    ).toBe("Zachary Levi | Tucker | 69899");
   });
 
   it("ignores standalone image labels between duplicate TMDB names", () => {
@@ -80,6 +93,14 @@ describe("formatCreditPaste", () => {
         "Zachary Levi | \nZachary Levi | Tucker\nLiam Neeson | Larry\nZachary Levi | Tucker",
       ),
     ).toBe("Zachary Levi | Tucker\nLiam Neeson | Larry");
+  });
+
+  it("upgrades an existing credit when a repeated paste includes a person ID", () => {
+    expect(
+      dedupeCreditLines(
+        "Zachary Levi | Tucker\nZachary Levi | Tucker | 69899",
+      ),
+    ).toBe("Zachary Levi | Tucker | 69899");
   });
 
   it("preserves non-Latin names while removing their duplicates", () => {

@@ -41,4 +41,29 @@ describe('movie table actions', () => {
       { name: 'Liam Neeson', slug: 'liam-neeson', character: 'Larry' },
     ]);
   });
+
+  it('accepts a TMDB person ID and trusted TMDB profile image', () => {
+    expect(adminCreditListSchema.parse([{
+      name: 'Zachary Levi',
+      slug: 'zachary-levi',
+      character: 'Tucker',
+      tmdbPersonId: '69899',
+      profileUrl: 'https://image.tmdb.org/t/p/w185/profile.jpg',
+    }])).toEqual([{
+      name: 'Zachary Levi',
+      slug: 'zachary-levi',
+      character: 'Tucker',
+      tmdbPersonId: '69899',
+      profileUrl: 'https://image.tmdb.org/t/p/w185/profile.jpg',
+    }]);
+  });
+
+  it('rejects untrusted person image hosts', () => {
+    expect(() => adminCreditListSchema.parse([{
+      name: 'Zachary Levi',
+      slug: 'zachary-levi',
+      tmdbPersonId: '69899',
+      profileUrl: 'https://example.com/profile.jpg',
+    }])).toThrow();
+  });
 });

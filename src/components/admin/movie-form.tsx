@@ -22,8 +22,11 @@ import { ArtworkField } from "@/components/admin/artwork-field";
 import { TmdbImporter } from "@/components/admin/tmdb-importer";
 import { readCsrfToken } from "@/lib/client/browser-brand";
 import {
+  addTmdbPersonIdsToCredits,
   dedupeCreditLines,
+  extractTmdbPersonIds,
   formatCreditPaste,
+  tmdbPersonIdFrom,
 } from "@/lib/client/credit-paste";
 
 type InitialMovie = Record<string, unknown> & {
@@ -37,7 +40,8 @@ const credits = (value: unknown, key: "character" | "role") =>
     ? value
         .map((item) => {
           const row = item as Record<string, unknown>;
-          return `${String(row.name ?? "")} | ${String(row[key] ?? "")}`;
+          const personId = String(row.tmdbPersonId ?? "").trim();
+          return `${String(row.name ?? "")} | ${String(row[key] ?? "")}${personId ? ` | ${personId}` : ""}`;
         })
         .join("\n")
     : "";
@@ -48,6 +52,11 @@ const parseCredits = (value: string, key: "character" | "role") =>
     .filter(Boolean)
     .map((line, index) => {
       const [name, ...details] = line.split("|").map((part) => part.trim());
+      const tmdbPersonId =
+        details.length >= 2
+          ? tmdbPersonIdFrom(details.at(-1) ?? "")
+          : undefined;
+      if (tmdbPersonId) details.pop();
       const slug =
         name
           .normalize("NFKD")
@@ -55,7 +64,12 @@ const parseCredits = (value: string, key: "character" | "role") =>
           .toLocaleLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-|-$/g, "") || `person-${index + 1}`;
-      return { name, slug, [key]: details.join(" | ") || undefined };
+      return {
+        name,
+        slug,
+        [key]: details.join(" | ") || undefined,
+        tmdbPersonId,
+      };
     });
 function creditLineAt(textarea: HTMLTextAreaElement) {
   const start = textarea.value.lastIndexOf("\n", textarea.selectionStart - 1) + 1;
@@ -103,9 +117,13 @@ function handleCreditPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
     (!/[\r\n]/.test(pasted) && line.value.trim() && !replacesWholeLine)
   )
     return;
-  const formatted = formatCreditPaste(
+  const formattedText = formatCreditPaste(
     pasted,
     textarea.name === "crew" ? "crew" : "cast",
+  );
+  const formatted = addTmdbPersonIdsToCredits(
+    formattedText,
+    extractTmdbPersonIds(event.clipboardData.getData("text/html")),
   );
   const combined = `${textarea.value.slice(0, textarea.selectionStart)}${formatted}${textarea.value.slice(textarea.selectionEnd)}`;
   const unique = dedupeCreditLines(combined);
@@ -481,14 +499,14 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
             <textarea
               name="cast"
               rows={5}
-              placeholder="Performer | Character"
+              placeholder="Performer | Character | TMDB Person ID"
               defaultValue={credits(initial?.cast, "character")}
               onKeyDown={handleCreditKeyDown}
               onPaste={handleCreditPaste}
             />
             <small>
-              Paste name/character pairs or press Enter after a name; | is added
-              automatically.
+              Name | Character | optional TMDB Person ID. TMDB-linked pastes
+              can add the ID automatically.
             </small>
           </label>
           <label className="span-2">
@@ -496,14 +514,14 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
             <textarea
               name="crew"
               rows={5}
-              placeholder="Person | Director"
+              placeholder="Person | Job | TMDB Person ID"
               defaultValue={credits(initial?.crew, "role")}
               onKeyDown={handleCreditKeyDown}
               onPaste={handleCreditPaste}
             />
             <small>
-              Paste name/job pairs or press Enter after a name; | is added
-              automatically.
+              Name | Job | optional TMDB Person ID. TMDB-linked pastes can add
+              the ID automatically.
             </small>
           </label>
           <ArtworkField

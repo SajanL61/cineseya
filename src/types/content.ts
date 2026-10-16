@@ -14,6 +14,8 @@ export type PersonCredit = {
   slug: string;
   role?: string;
   character?: string;
+  tmdbPersonId?: string;
+  profileUrl?: string;
 };
 
 export type MovieRecord = {

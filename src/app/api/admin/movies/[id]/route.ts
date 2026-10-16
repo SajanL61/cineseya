@@ -7,6 +7,7 @@ import { assertMutationRequest, requirePermission } from "@/lib/auth";
 import { connectDb } from "@/lib/db";
 import { apiError } from "@/lib/http";
 import { AuditLog, Movie } from "@/models";
+import { enrichMovieCreditProfiles } from "@/services/tmdb-people";
 
 const validId = (id: string) => {
   if (!isValidObjectId(id))
@@ -55,7 +56,7 @@ export async function PATCH(
       body.publicationStatus === "published";
     const input = publishOnly
       ? moviePublicationPatchSchema.parse(body)
-      : adminMovieSchema.parse(body);
+      : await enrichMovieCreditProfiles(adminMovieSchema.parse(body));
     if (
       input.publicationStatus === "published" &&
       !session.user.permissions.includes("content.publish")

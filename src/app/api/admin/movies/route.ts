@@ -3,6 +3,7 @@ import { assertMutationRequest, requirePermission } from "@/lib/auth";
 import { connectDb } from "@/lib/db";
 import { apiError } from "@/lib/http";
 import { AuditLog, Movie } from "@/models";
+import { enrichMovieCreditProfiles } from "@/services/tmdb-people";
 
 export async function GET(request: Request) {
   try {
@@ -36,7 +37,9 @@ export async function POST(request: Request) {
   try {
     const session = await requirePermission("content.create");
     await assertMutationRequest(request, session);
-    const input = adminMovieSchema.parse(await request.json());
+    const input = await enrichMovieCreditProfiles(
+      adminMovieSchema.parse(await request.json()),
+    );
     if (
       input.publicationStatus === "published" &&
       !session.user.permissions.includes("content.publish")
