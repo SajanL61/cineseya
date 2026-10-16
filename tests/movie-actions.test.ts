@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { movieArchiveConfirmation, movieArchiveRequest, moviePublishConfirmation, moviePublishRequest } from '../src/lib/client/movie-actions';
-import { moviePublicationPatchSchema } from '../src/lib/validation/movie';
+import { adminCreditListSchema, moviePublicationPatchSchema } from '../src/lib/validation/movie';
 
 describe('movie table actions', () => {
   it('publishes only the selected movie with a narrow status patch', () => {
@@ -29,5 +29,16 @@ describe('movie table actions', () => {
     expect(moviePublishConfirmation('The Youth')).toContain('Movie: The Youth');
     expect(movieArchiveConfirmation('The Youth')).toContain('Movie: The Youth');
     expect(movieArchiveConfirmation('The Youth')).toContain('linked media will be preserved');
+  });
+
+  it('removes duplicate cast or crew people during API validation', () => {
+    expect(adminCreditListSchema.parse([
+      { name: 'Zachary Levi', slug: 'zachary-levi', character: 'Tucker' },
+      { name: 'Zachary Levi', slug: 'zachary-levi-copy', character: 'Tucker' },
+      { name: 'Liam Neeson', slug: 'liam-neeson', character: 'Larry' },
+    ])).toEqual([
+      { name: 'Zachary Levi', slug: 'zachary-levi', character: 'Tucker' },
+      { name: 'Liam Neeson', slug: 'liam-neeson', character: 'Larry' },
+    ]);
   });
 });

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { formatCreditPaste } from "../src/lib/client/credit-paste";
+import {
+  dedupeCreditLines,
+  formatCreditPaste,
+} from "../src/lib/client/credit-paste";
 
 describe("formatCreditPaste", () => {
   it("combines copied cast names and characters", () => {
@@ -60,5 +63,28 @@ describe("formatCreditPaste", () => {
     expect(formatCreditPaste(copied, "cast")).toBe(
       "Zachary Levi | Tucker\nLiam Neeson | Larry",
     );
+  });
+
+  it("ignores standalone image labels between duplicate TMDB names", () => {
+    expect(
+      formatCreditPaste(
+        "Zachary Levi\nimage\nZachary Levi\nTucker\nLiam Neeson\nphoto\nLiam Neeson\nLarry",
+        "cast",
+      ),
+    ).toBe("Zachary Levi | Tucker\nLiam Neeson | Larry");
+  });
+
+  it("never keeps the same formatted person twice", () => {
+    expect(
+      dedupeCreditLines(
+        "Zachary Levi | \nZachary Levi | Tucker\nLiam Neeson | Larry\nZachary Levi | Tucker",
+      ),
+    ).toBe("Zachary Levi | Tucker\nLiam Neeson | Larry");
+  });
+
+  it("preserves non-Latin names while removing their duplicates", () => {
+    expect(
+      dedupeCreditLines("සමන් පෙරේරා | චරිතය\nසමන් පෙරේරා | චරිතය"),
+    ).toBe("සමන් පෙරේරා | චරිතය");
   });
 });

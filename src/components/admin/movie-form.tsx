@@ -21,7 +21,10 @@ import {
 import { ArtworkField } from "@/components/admin/artwork-field";
 import { TmdbImporter } from "@/components/admin/tmdb-importer";
 import { readCsrfToken } from "@/lib/client/browser-brand";
-import { formatCreditPaste } from "@/lib/client/credit-paste";
+import {
+  dedupeCreditLines,
+  formatCreditPaste,
+} from "@/lib/client/credit-paste";
 
 type InitialMovie = Record<string, unknown> & {
   _id?: string;
@@ -39,7 +42,7 @@ const credits = (value: unknown, key: "character" | "role") =>
         .join("\n")
     : "";
 const parseCredits = (value: string, key: "character" | "role") =>
-  value
+  dedupeCreditLines(value)
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
@@ -96,7 +99,7 @@ function handleCreditPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
   const replacesWholeLine =
     textarea.selectionStart === line.start && textarea.selectionEnd === line.end;
   if (
-    line.value.includes("|") ||
+    (line.value.includes("|") && !replacesWholeLine) ||
     (!/[\r\n]/.test(pasted) && line.value.trim() && !replacesWholeLine)
   )
     return;
@@ -104,12 +107,14 @@ function handleCreditPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
     pasted,
     textarea.name === "crew" ? "crew" : "cast",
   );
-  if (formatted === pasted) return;
+  const combined = `${textarea.value.slice(0, textarea.selectionStart)}${formatted}${textarea.value.slice(textarea.selectionEnd)}`;
+  const unique = dedupeCreditLines(combined);
+  if (formatted === pasted && unique === combined) return;
   event.preventDefault();
   textarea.setRangeText(
-    formatted,
-    textarea.selectionStart,
-    textarea.selectionEnd,
+    unique,
+    0,
+    textarea.value.length,
     "end",
   );
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
