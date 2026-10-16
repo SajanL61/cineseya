@@ -21,6 +21,7 @@ import {
 import { ArtworkField } from "@/components/admin/artwork-field";
 import { TmdbImporter } from "@/components/admin/tmdb-importer";
 import { readCsrfToken } from "@/lib/client/browser-brand";
+import { formatCreditPaste } from "@/lib/client/credit-paste";
 
 type InitialMovie = Record<string, unknown> & {
   _id?: string;
@@ -53,15 +54,6 @@ const parseCredits = (value: string, key: "character" | "role") =>
           .replace(/^-|-$/g, "") || `person-${index + 1}`;
       return { name, slug, [key]: details.join(" | ") || undefined };
     });
-const addMissingCreditSeparators = (value: string) =>
-  value
-    .replace(/\r\n?/g, "\n")
-    .split("\n")
-    .map((line) => {
-      const credit = line.trim();
-      return credit && !credit.includes("|") ? `${credit} | ` : line;
-    })
-    .join("\n");
 function creditLineAt(textarea: HTMLTextAreaElement) {
   const start = textarea.value.lastIndexOf("\n", textarea.selectionStart - 1) + 1;
   const nextBreak = textarea.value.indexOf("\n", textarea.selectionEnd);
@@ -108,7 +100,10 @@ function handleCreditPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
     (!/[\r\n]/.test(pasted) && line.value.trim() && !replacesWholeLine)
   )
     return;
-  const formatted = addMissingCreditSeparators(pasted);
+  const formatted = formatCreditPaste(
+    pasted,
+    textarea.name === "crew" ? "crew" : "cast",
+  );
   if (formatted === pasted) return;
   event.preventDefault();
   textarea.setRangeText(
@@ -487,7 +482,8 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
               onPaste={handleCreditPaste}
             />
             <small>
-              One credit per line. Press Enter after a name to add | automatically.
+              Paste name/character pairs or press Enter after a name; | is added
+              automatically.
             </small>
           </label>
           <label className="span-2">
@@ -501,7 +497,8 @@ export function MovieForm({ initial }: { initial?: InitialMovie }) {
               onPaste={handleCreditPaste}
             />
             <small>
-              One credit per line. Press Enter after a name to add | automatically.
+              Paste name/job pairs or press Enter after a name; | is added
+              automatically.
             </small>
           </label>
           <ArtworkField
