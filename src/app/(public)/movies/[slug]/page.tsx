@@ -478,9 +478,9 @@ export default async function MovieDetailPage({
                         <Image
                           src={credit.profileUrl}
                           alt={`${credit.name} profile`}
-                          width={72}
-                          height={72}
-                          sizes="72px"
+                          width={80}
+                          height={120}
+                          sizes="80px"
                         />
                       ) : (
                         credit.name
