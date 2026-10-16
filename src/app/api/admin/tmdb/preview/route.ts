@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { requirePermission } from '@/lib/auth';
-import { env } from '@/lib/env';
 import { apiError } from '@/lib/http';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { fetchTmdb } from '@/services/tmdb-client';
 
 const responseSchema = z.object({
   id: z.number(), title: z.string(), original_title: z.string().optional(), overview: z.string().optional(), release_date: z.string().optional(), runtime: z.number().nullable().optional(),
@@ -19,10 +19,9 @@ export async function GET(request: Request) {
   try {
     await requirePermission('content.update');
     await enforceRateLimit(request, 'tmdb-preview', 30, 60_000);
-    if (!env.TMDB_API_TOKEN) throw Object.assign(new Error('TMDb importing is not configured.'), { status: 503, code: 'TMDB_UNAVAILABLE' });
     const id = z.coerce.number().int().positive().parse(new URL(request.url).searchParams.get('id'));
-    const response = await fetch(`https://api.themoviedb.org/3/movie/${id}?append_to_response=credits,videos&language=en-US`, {
-      headers: { Authorization: `Bearer ${env.TMDB_API_TOKEN}`, Accept: 'application/json' }, cache: 'no-store', signal: AbortSignal.timeout(10_000),
+    const response = await fetchTmdb(`/movie/${id}`, { append_to_response: 'credits,videos', language: 'en-US' }, {
+      cache: 'no-store', signal: AbortSignal.timeout(10_000),
     });
     if (response.status === 404) throw Object.assign(new Error('TMDb could not find that movie ID.'), { status: 404, code: 'TMDB_NOT_FOUND' });
     if (!response.ok) throw Object.assign(new Error('TMDb metadata could not be loaded.'), { status: 502, code: 'TMDB_ERROR' });

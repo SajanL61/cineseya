@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
-import { env } from "@/lib/env";
 import type { AdminMovieInput } from "@/lib/validation/movie";
+import { fetchTmdb } from "@/services/tmdb-client";
 
 const personSchema = z.object({
   id: z.number().int().positive(),
@@ -11,13 +11,10 @@ const personSchema = z.object({
 type Credit = AdminMovieInput["cast"][number];
 
 async function loadProfile(personId: string) {
-  const response = await fetch(
-    `https://api.themoviedb.org/3/person/${encodeURIComponent(personId)}?language=en-US`,
+  const response = await fetchTmdb(
+    `/person/${encodeURIComponent(personId)}`,
+    { language: "en-US" },
     {
-      headers: {
-        Authorization: `Bearer ${env.TMDB_API_TOKEN}`,
-        Accept: "application/json",
-      },
       next: { revalidate: 86_400 },
       signal: AbortSignal.timeout(10_000),
     },
@@ -59,13 +56,6 @@ export async function enrichMovieCreditProfiles(input: AdminMovieInput) {
     ),
   ];
   if (!unresolvedIds.length) return input;
-  if (!env.TMDB_API_TOKEN)
-    throw Object.assign(
-      new Error(
-        "TMDB importing is not configured, so person images cannot be loaded.",
-      ),
-      { status: 503, code: "TMDB_UNAVAILABLE" },
-    );
   const profiles = new Map(
     await Promise.all(
       unresolvedIds.map(async (personId) => [
