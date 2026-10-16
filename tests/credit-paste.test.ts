@@ -40,4 +40,25 @@ describe("formatCreditPaste", () => {
       "Zachary Levi | ",
     );
   });
+
+  it("removes TMDB image links and duplicate linked names", () => {
+    const copied = `1. [Zachary Levi](https://www.themoviedb.org/person/69899-zachary-levi)
+
+   &#x20;([image](https://media.themoviedb.org/t/p/w66_and_h66_face/zachary.jpg))
+
+   [**Zachary Levi**](https://www.themoviedb.org/person/69899-zachary-levi)
+
+   Tucker
+2. [Liam Neeson](https://www.themoviedb.org/person/3896-liam-neeson)
+
+   &#x20;([image](https://media.themoviedb.org/t/p/w66_and_h66_face/liam.jpg))
+
+   [**Liam Neeson**](https://www.themoviedb.org/person/3896-liam-neeson)
+
+   Larry`;
+
+    expect(formatCreditPaste(copied, "cast")).toBe(
+      "Zachary Levi | Tucker\nLiam Neeson | Larry",
+    );
+  });
 });

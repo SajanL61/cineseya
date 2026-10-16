@@ -22,11 +22,24 @@ const crewDepartments = new Set(
 const sectionPattern = (kind: CreditKind) =>
   new RegExp(`^${kind}(?:\\s*\\d+)?$`, "i");
 
+function cleanCopiedLine(line: string) {
+  if (/\[image\]\(|media\.themoviedb\.org/i.test(line)) return "";
+  return line
+    .replace(/\u00a0|&#x20;|&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .trim()
+    .replace(/^\d+\.\s*/, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\*\*|__|`/g, "")
+    .replace(/<[^>]*>/g, "")
+    .trim();
+}
+
 function copiedLines(value: string, kind: CreditKind) {
   let lines = value
     .replace(/\r\n?/g, "\n")
     .split("\n")
-    .map((line) => line.replace(/\u00a0/g, " ").trim())
+    .map(cleanCopiedLine)
     .filter(Boolean);
   const ownHeading = lines.findIndex((line) => sectionPattern(kind).test(line));
   if (ownHeading >= 0) lines = lines.slice(ownHeading + 1);
@@ -60,6 +73,10 @@ export function formatCreditPaste(value: string, kind: CreditKind) {
       crewDepartments.has(name.toLocaleLowerCase())
     )
       continue;
+    while (
+      lines[index]?.toLocaleLowerCase() === name.toLocaleLowerCase()
+    )
+      index += 1;
     const detail = lines[index++] ?? "";
     credits.push(`${name} | ${detail}`);
   }
