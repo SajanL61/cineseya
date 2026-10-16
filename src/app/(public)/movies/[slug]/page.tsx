@@ -464,47 +464,6 @@ export default async function MovieDetailPage({
                 </div>
               )}
             </section>
-            <section id="cast" className="detail-section">
-              <span className="section-label">People</span>
-              <h2>Cast & Crew</h2>
-              <div className="credits-grid">
-                {[...movie.cast, ...movie.crew].map((credit, index) => (
-                  <Link
-                    href={`/person/${credit.slug}`}
-                    key={`${credit.slug}-${index}`}
-                  >
-                    <span className={credit.profileUrl ? "has-image" : undefined}>
-                      {credit.profileUrl ? (
-                        <Image
-                          src={credit.profileUrl}
-                          alt={`${credit.name} profile`}
-                          width={80}
-                          height={120}
-                          sizes="80px"
-                        />
-                      ) : (
-                        credit.name
-                          .split(" ")
-                          .map((word) => word[0])
-                          .join("")
-                          .slice(0, 2)
-                      )}
-                    </span>
-                    <b>{credit.name}</b>
-                    <small>{credit.character ?? credit.role ?? "Cast"}</small>
-                  </Link>
-                ))}
-              </div>
-            </section>
-            <section id="reviews" className="detail-section">
-              <span className="section-label">Community</span>
-              <h2>Reviews & Comments</h2>
-              <CommunityPanel
-                type="movie"
-                id={movie.id}
-                authenticated={Boolean(user)}
-              />
-            </section>
           </div>
           <aside className="detail-sidebar">
             <section id="details">
@@ -580,6 +539,47 @@ export default async function MovieDetailPage({
               </small>
             </section>
           </aside>
+          <section id="cast" className="detail-section detail-cast">
+            <span className="section-label">People</span>
+            <h2>Cast & Crew</h2>
+            <div className="credits-grid">
+              {[...movie.cast, ...movie.crew].map((credit, index) => (
+                <Link
+                  href={`/person/${credit.slug}`}
+                  key={`${credit.slug}-${index}`}
+                >
+                  <span className={credit.profileUrl ? "has-image" : undefined}>
+                    {credit.profileUrl ? (
+                      <Image
+                        src={credit.profileUrl}
+                        alt={`${credit.name} profile`}
+                        width={80}
+                        height={120}
+                        sizes="80px"
+                      />
+                    ) : (
+                      credit.name
+                        .split(" ")
+                        .map((word) => word[0])
+                        .join("")
+                        .slice(0, 2)
+                    )}
+                  </span>
+                  <b>{credit.name}</b>
+                  <small>{credit.character ?? credit.role ?? "Cast"}</small>
+                </Link>
+              ))}
+            </div>
+          </section>
+          <section id="reviews" className="detail-section detail-reviews">
+            <span className="section-label">Community</span>
+            <h2>Reviews & Comments</h2>
+            <CommunityPanel
+              type="movie"
+              id={movie.id}
+              authenticated={Boolean(user)}
+            />
+          </section>
         </div>
         {related.filter((item) => item.id !== movie.id).length > 0 && (
           <section className="detail-related">
