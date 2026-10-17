@@ -47,18 +47,21 @@ export const useDemoData = env.CINESEYA_DEMO_MODE === 'true' || env.CINERUSUBS_D
 
 export function assertProductionEnvironment() {
   if (env.NODE_ENV !== 'production') return;
-  const missing: string[] = [];
-  if (!env.MONGODB_URI) missing.push('MONGODB_URI');
-  if (!env.R2_ACCOUNT_ID) missing.push('R2_ACCOUNT_ID');
-  if (!env.R2_ACCESS_KEY_ID) missing.push('R2_ACCESS_KEY_ID');
-  if (!env.R2_SECRET_ACCESS_KEY) missing.push('R2_SECRET_ACCESS_KEY');
-  if (!env.R2_MEDIA_BUCKET) missing.push('R2_MEDIA_BUCKET');
-  if (!env.R2_ASSETS_BUCKET) missing.push('R2_ASSETS_BUCKET');
-  if (env.R2_MEDIA_BUCKET === env.R2_ASSETS_BUCKET) missing.push('separate R2_MEDIA_BUCKET and R2_ASSETS_BUCKET values');
-  if (!publicAssetOrigin) missing.push('PUBLIC_ASSET_DOMAIN');
-  if (env.DOWNLOAD_WORKER_ENABLED === 'true' && !env.DOWNLOAD_DOMAIN) missing.push('DOWNLOAD_DOMAIN');
-  if (env.SESSION_SECRET.startsWith('development-')) missing.push('SESSION_SECRET');
-  if (env.DOWNLOAD_SIGNING_SECRET.startsWith('development-')) missing.push('DOWNLOAD_SIGNING_SECRET');
-  if (!env.NEXT_PUBLIC_SITE_URL.startsWith('https://')) missing.push('NEXT_PUBLIC_SITE_URL (HTTPS)');
-  if (missing.length) throw new Error(`Production launch blocked: configure ${missing.join(', ')}`);
+  const required: string[] = [];
+  if (!env.MONGODB_URI) required.push('MONGODB_URI');
+  if (env.SESSION_SECRET.startsWith('development-')) required.push('SESSION_SECRET');
+  if (env.DOWNLOAD_SIGNING_SECRET.startsWith('development-')) required.push('DOWNLOAD_SIGNING_SECRET');
+  if (!env.NEXT_PUBLIC_SITE_URL.startsWith('https://')) required.push('NEXT_PUBLIC_SITE_URL (HTTPS)');
+  if (required.length) throw new Error(`Production launch blocked: configure ${required.join(', ')}`);
+
+  const storage: string[] = [];
+  if (!env.R2_ACCOUNT_ID) storage.push('R2_ACCOUNT_ID');
+  if (!env.R2_ACCESS_KEY_ID) storage.push('R2_ACCESS_KEY_ID');
+  if (!env.R2_SECRET_ACCESS_KEY) storage.push('R2_SECRET_ACCESS_KEY');
+  if (!env.R2_MEDIA_BUCKET) storage.push('R2_MEDIA_BUCKET');
+  if (!env.R2_ASSETS_BUCKET) storage.push('R2_ASSETS_BUCKET');
+  if (env.R2_MEDIA_BUCKET === env.R2_ASSETS_BUCKET) storage.push('separate R2_MEDIA_BUCKET and R2_ASSETS_BUCKET values');
+  if (!publicAssetOrigin) storage.push('PUBLIC_ASSET_DOMAIN');
+  if (env.DOWNLOAD_WORKER_ENABLED === 'true' && !env.DOWNLOAD_DOMAIN) storage.push('DOWNLOAD_DOMAIN');
+  if (storage.length) console.warn(`CineSeya is starting with storage features unavailable: configure ${storage.join(', ')}`);
 }
